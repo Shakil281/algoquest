@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,351 +9,450 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #07070f; color: #e0e0e0; font-family: 'Courier New', monospace; min-height: 100vh; overflow-x: hidden; }
-    body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,128,0.012) 2px, rgba(0,255,128,0.012) 4px); pointer-events: none; z-index: 9999; }
+    /* ── THEME VARIABLES ── */
+    :root {
+      --bg0:#07070f; --bg1:#0b0b18; --bg2:#0e0e1e; --bg3:#14142a; --bg4:#1e1e32;
+      --bd:#222; --bd2:#333; --bd3:#1e1e32;
+      --tx:#e0e0e0; --tx2:#888; --tx3:#555; --tx4:#444;
+      --green:#00ff88; --cyan:#00ffff; --scanline:rgba(0,255,128,0.012);
+    }
+    [data-theme="light"] {
+      --bg0:#eef2f5; --bg1:#ffffff; --bg2:#e4eaf0; --bg3:#d4dde8; --bg4:#c4d0dc;
+      --bd:#b0bfc8; --bd2:#90a8b8; --bd3:#c0cdd8;
+      --tx:#1a2535; --tx2:#4a6070; --tx3:#607888; --tx4:#7890a0;
+      --green:#00b060; --cyan:#0099bb; --scanline:rgba(0,0,0,0.008);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg0); color:var(--tx); font-family:'Courier New',monospace; min-height:100vh; overflow-x:hidden; transition:background 0.3s,color 0.3s; }
+    body::before { content:''; position:fixed; top:0;left:0;right:0;bottom:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scanline) 2px,var(--scanline) 4px); pointer-events:none; z-index:9999; }
 
     /* MENU */
-    .menu-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 48px; padding: 24px; }
-    .game-title { font-family: 'Press Start 2P', cursive; font-size: clamp(20px, 5vw, 44px); color: #00ff88; text-shadow: 0 0 20px #00ff88, 0 0 50px #00ff8866; text-align: center; animation: glow 2.5s ease-in-out infinite; }
-    @keyframes glow { 0%,100% { text-shadow: 0 0 18px #00ff88, 0 0 40px #00ff8855; } 50% { text-shadow: 0 0 28px #00ff88, 0 0 70px #00ff88aa, 0 0 100px #00ff8833; } }
-    .game-subtitle { font-family: 'Press Start 2P', cursive; font-size: clamp(7px, 1.5vw, 11px); color: #00ffff; text-align: center; margin-top: 14px; }
-    .mode-cards { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
-    .mode-card { background: #0e0e1e; border: 2px solid #00ff8833; border-radius: 10px; padding: 32px 28px; width: 270px; cursor: pointer; transition: all 0.25s; text-align: center; }
-    .mode-card:hover { border-color: #00ff88; box-shadow: 0 0 24px #00ff8840, inset 0 0 24px #00ff8810; transform: translateY(-6px); }
-    .mode-icon { font-size: 52px; margin-bottom: 18px; }
-    .mode-title { font-family: 'Press Start 2P', cursive; font-size: 11px; color: #00ff88; margin-bottom: 14px; }
-    .mode-desc { font-size: 12px; color: #888; line-height: 1.7; }
-    .mode-play { margin-top: 16px; font-size: 10px; }
+    .menu-container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:40px; padding:24px; }
+    .game-title { font-family:'Press Start 2P',cursive; font-size:clamp(18px,5vw,44px); color:var(--green); text-shadow:0 0 20px var(--green),0 0 50px var(--green)44; text-align:center; animation:glow 2.5s ease-in-out infinite; }
+    @keyframes glow { 0%,100%{text-shadow:0 0 18px var(--green),0 0 40px var(--green)55;} 50%{text-shadow:0 0 28px var(--green),0 0 70px var(--green)aa;} }
+    .game-subtitle { font-family:'Press Start 2P',cursive; font-size:clamp(6px,1.4vw,10px); color:var(--cyan); text-align:center; margin-top:12px; }
+    .mode-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+    .mode-card { background:var(--bg2); border:2px solid var(--green)33; border-radius:10px; padding:26px 22px; width:240px; cursor:pointer; transition:all 0.25s; text-align:center; }
+    .mode-card:hover { border-color:var(--green); box-shadow:0 0 24px var(--green)40; transform:translateY(-5px); }
+    .mode-icon { font-size:44px; margin-bottom:14px; }
+    .mode-title { font-family:'Press Start 2P',cursive; font-size:10px; color:var(--green); margin-bottom:12px; }
+    .mode-desc { font-size:11px; color:var(--tx2); line-height:1.7; }
+    .mode-play { margin-top:14px; font-size:9px; }
 
     /* LEVEL SELECT */
-    .level-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
-    .level-card { background: #0e0e1e; border: 2px solid; border-radius: 10px; padding: 28px 22px; width: 190px; cursor: pointer; transition: all 0.25s; text-align: center; }
-    .level-icon { font-size: 40px; margin-bottom: 14px; }
-    .level-label { font-family: 'Press Start 2P', cursive; font-size: 10px; margin-bottom: 10px; }
-    .level-count { font-size: 11px; color: #555; }
+    .level-cards { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+    .level-card { background:var(--bg2); border:2px solid; border-radius:10px; padding:24px 18px; width:180px; cursor:pointer; transition:all 0.25s; text-align:center; position:relative; }
+    .level-card.locked { opacity:0.5; cursor:not-allowed; }
+    .level-icon  { font-size:36px; margin-bottom:12px; }
+    .level-label { font-family:'Press Start 2P',cursive; font-size:9px; margin-bottom:8px; }
+    .level-count { font-size:10px; color:var(--tx3); }
+    .level-best  { font-size:9px; margin-top:8px; }
+    .lock-badge  { font-size:18px; position:absolute; top:8px; right:8px; }
 
     /* SHARED */
-    .game-container { max-width: 1280px; margin: 0 auto; padding: 20px; }
-    .game-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
-    .back-btn { background: #13132a; border: 1px solid #333; color: #888; padding: 8px 18px; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.2s; }
-    .back-btn:hover { border-color: #00ff88; color: #00ff88; }
-    .section-title { font-family: 'Press Start 2P', cursive; font-size: clamp(9px, 1.8vw, 14px); color: #00ffff; text-shadow: 0 0 8px #00ffff66; }
-    .mute-btn { background: #13132a; border: 1px solid #333; color: #888; padding: 7px 14px; cursor: pointer; font-size: 14px; transition: all 0.2s; border-radius: 4px; margin-left: auto; }
-    .mute-btn:hover { border-color: #00ff88; }
-    .mute-btn.muted { border-color: #ff3355; color: #ff3355; }
-    .btn { padding: 9px 18px; border: none; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.18s; border-radius: 4px; }
-    .btn-green { background: #00ff88; color: #000; } .btn-green:hover { background: #33ffaa; box-shadow: 0 0 12px #00ff88; }
-    .btn-cyan  { background: #00ffff; color: #000; } .btn-cyan:hover  { background: #55ffff; box-shadow: 0 0 12px #00ffff; }
-    .btn-red   { background: #ff3355; color: #fff; } .btn-red:hover   { background: #ff5577; box-shadow: 0 0 12px #ff3355; }
-    .btn-gray  { background: #1e1e32; color: #888; border: 1px solid #333; } .btn-gray:hover { background: #2a2a42; color: #ccc; }
-    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-    .algo-btn { padding: 7px 15px; border: 1px solid #333; background: #0e0e1e; color: #666; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.18s; border-radius: 4px; }
-    .algo-btn.active { border-color: #00ff88; color: #00ff88; background: #00ff8812; }
-    .controls-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
-    .speed-control { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #555; }
-    .speed-control input[type=range] { width: 100px; accent-color: #00ff88; }
-    .stats-bar { display: flex; gap: 10px; flex-wrap: wrap; }
-    .stat-item { background: #0e0e1e; border: 1px solid #1e1e32; border-radius: 4px; padding: 8px 14px; text-align: center; min-width: 68px; }
-    .stat-label { font-size: 6px; color: #444; font-family: 'Press Start 2P', cursive; margin-bottom: 4px; }
-    .stat-value { font-size: 18px; font-family: 'Press Start 2P', cursive; }
-    .message { text-align: center; padding: 9px; border-radius: 4px; font-family: 'Press Start 2P', cursive; font-size: 8px; margin: 8px 0; }
-    .message.success { background: #00ff8820; color: #00ff88; border: 1px solid #00ff8866; }
-    .message.error   { background: #ff333320; color: #ff5566; border: 1px solid #ff335566; }
-    .message.info    { background: #0044ff20; color: #5588ff; border: 1px solid #0044ff66; }
+    .game-container { max-width:1300px; margin:0 auto; padding:18px; }
+    .game-header { display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+    .back-btn { background:var(--bg2); border:1px solid var(--bd2); color:var(--tx2); padding:8px 16px; cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.2s; }
+    .back-btn:hover { border-color:var(--green); color:var(--green); }
+    .section-title { font-family:'Press Start 2P',cursive; font-size:clamp(8px,1.8vw,13px); color:var(--cyan); }
+    .icon-btn { background:var(--bg2); border:1px solid var(--bd2); color:var(--tx2); padding:7px 12px; cursor:pointer; font-size:14px; transition:all 0.2s; border-radius:4px; }
+    .icon-btn:hover { border-color:var(--green); }
+    .icon-btn.active { border-color:var(--cyan); color:var(--cyan); }
+    .icon-btn.muted  { border-color:#ff3355; color:#ff3355; }
+    .header-right { display:flex; gap:8px; margin-left:auto; align-items:center; }
+    .btn { padding:8px 16px; border:none; cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.18s; border-radius:4px; }
+    .btn-green { background:var(--green); color:#000; } .btn-green:hover { filter:brightness(1.2); box-shadow:0 0 12px var(--green); }
+    .btn-cyan  { background:var(--cyan);  color:#000; } .btn-cyan:hover  { filter:brightness(1.2); box-shadow:0 0 12px var(--cyan); }
+    .btn-red   { background:#ff3355; color:#fff; }      .btn-red:hover   { background:#ff5577; box-shadow:0 0 12px #ff3355; }
+    .btn-gray  { background:var(--bg4); color:var(--tx2); border:1px solid var(--bd2); } .btn-gray:hover { filter:brightness(1.2); color:var(--tx); }
+    .btn-purple { background:#8855ff; color:#fff; } .btn-purple:hover { background:#aa77ff; box-shadow:0 0 12px #8855ff; }
+    .btn:disabled { opacity:0.35; cursor:not-allowed; }
+    .algo-btn { padding:6px 13px; border:1px solid var(--bd2); background:var(--bg2); color:var(--tx3); cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.18s; border-radius:4px; }
+    .algo-btn.active { border-color:var(--green); color:var(--green); background:var(--green)11; }
+    .controls-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0; }
+    .speed-control { display:flex; align-items:center; gap:8px; font-size:10px; color:var(--tx3); }
+    .speed-control input[type=range] { width:90px; accent-color:var(--green); }
+    .stats-bar { display:flex; gap:8px; flex-wrap:wrap; }
+    .stat-item { background:var(--bg2); border:1px solid var(--bd3); border-radius:4px; padding:7px 12px; text-align:center; min-width:64px; }
+    .stat-label { font-size:6px; color:var(--tx4); font-family:'Press Start 2P',cursive; margin-bottom:4px; }
+    .stat-value { font-size:16px; font-family:'Press Start 2P',cursive; }
+    .message { text-align:center; padding:8px; border-radius:4px; font-family:'Press Start 2P',cursive; font-size:8px; margin:8px 0; }
+    .message.success { background:var(--green)20; color:var(--green); border:1px solid var(--green)66; }
+    .message.error   { background:#ff333320; color:#ff5566; border:1px solid #ff335566; }
+    .message.info    { background:#0044ff20; color:#5588ff; border:1px solid #0044ff66; }
 
     /* MODE TABS */
-    .mode-tabs { display: flex; gap: 0; margin-bottom: 14px; border-radius: 4px; overflow: hidden; border: 1px solid #222; width: fit-content; }
-    .mode-tab { padding: 9px 22px; background: #0e0e1e; color: #555; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.2s; border: none; }
-    .mode-tab.active { background: #00ff8818; color: #00ff88; }
+    .mode-tabs { display:flex; margin-bottom:12px; border-radius:4px; overflow:hidden; border:1px solid var(--bd); width:fit-content; }
+    .mode-tab { padding:8px 20px; background:var(--bg2); color:var(--tx3); cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.2s; border:none; }
+    .mode-tab.active { background:var(--green)18; color:var(--green); }
 
     /* SORT */
-    .sort-layout { display: grid; grid-template-columns: 1fr 290px; gap: 20px; }
-    @media (max-width: 860px) { .sort-layout { grid-template-columns: 1fr; } }
-    .monster-arena { background: #0b0b18; border: 1px solid #00ff8820; border-radius: 8px; padding: 18px; }
-    .monster-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; min-height: 180px; align-items: flex-end; }
-    .monster-card { width: 86px; background: #14142a; border: 2px solid #222; border-radius: 8px; padding: 10px; cursor: grab; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s; text-align: center; user-select: none; display: flex; flex-direction: column; justify-content: flex-end; }
-    .monster-card:active { cursor: grabbing; }
-    .monster-card.comparing { border-color: #3377ff; box-shadow: 0 0 14px #3377ff88; }
-    .monster-card.swapping  { border-color: #ff3344; box-shadow: 0 0 14px #ff334488; animation: shake 0.25s; }
-    .monster-card.pivot     { border-color: #ffdd00; box-shadow: 0 0 14px #ffdd0088; }
-    .monster-card.sorted    { border-color: #00ff88; box-shadow: 0 0 10px #00ff8844; }
-    .monster-card.merging   { border-color: #ff7700; box-shadow: 0 0 14px #ff770066; }
-    .monster-card.hint      { border-color: #ffdd00; box-shadow: 0 0 18px #ffdd00bb; animation: hintPulse 0.9s ease-in-out infinite; }
-    .monster-card.dragging  { opacity: 0.4; transform: scale(0.92); cursor: grabbing; }
-    .monster-card.drag-over { border-color: #ff00cc; box-shadow: 0 0 20px #ff00cc88; transform: scale(1.07); }
-    .monster-card.all-done  { border-color: #00ff88; box-shadow: 0 0 12px #00ff8855; }
-    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-    @keyframes hintPulse { 0%,100% { box-shadow: 0 0 14px #ffdd0088; } 50% { box-shadow: 0 0 30px #ffdd00cc; } }
-    .monster-emoji { font-size: 28px; margin-bottom: 6px; pointer-events: none; }
-    .monster-name  { font-size: 6px; color: #555; margin-bottom: 4px; font-family: 'Press Start 2P', cursive; pointer-events: none; }
-    .monster-hp    { font-family: 'Press Start 2P', cursive; font-size: 12px; color: #ddd; margin-bottom: 6px; pointer-events: none; }
-    .hp-bar  { height: 4px; background: #1e1e2e; border-radius: 3px; overflow: hidden; pointer-events: none; }
-    .hp-fill { height: 100%; border-radius: 3px; transition: width 0.25s; }
-
-    /* COMBO */
-    .combo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; min-height: 34px; }
-    .combo-num   { font-family: 'Press Start 2P', cursive; font-size: clamp(16px, 3vw, 26px); color: #ff00cc; text-shadow: 0 0 12px #ff00ccaa; }
-    .combo-label { font-family: 'Press Start 2P', cursive; font-size: 7px; color: #666; }
+    .sort-layout { display:grid; grid-template-columns:1fr 280px; gap:18px; }
+    @media(max-width:860px){.sort-layout{grid-template-columns:1fr;}}
+    .monster-arena { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:16px; }
+    .monster-row { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin:12px 0; min-height:170px; align-items:flex-end; }
+    .monster-card { width:82px; background:var(--bg3); border:2px solid var(--bd); border-radius:8px; padding:9px; cursor:grab; transition:border-color 0.15s,box-shadow 0.15s,transform 0.15s,opacity 0.15s; text-align:center; user-select:none; display:flex; flex-direction:column; justify-content:flex-end; touch-action:none; }
+    .monster-card:active { cursor:grabbing; }
+    .monster-card.comparing { border-color:#3377ff; box-shadow:0 0 14px #3377ff88; }
+    .monster-card.swapping  { border-color:#ff3344; box-shadow:0 0 14px #ff334488; animation:shake 0.25s; }
+    .monster-card.pivot     { border-color:#ffdd00; box-shadow:0 0 14px #ffdd0088; }
+    .monster-card.sorted    { border-color:var(--green); box-shadow:0 0 10px var(--green)44; }
+    .monster-card.merging   { border-color:#ff7700; box-shadow:0 0 14px #ff770066; }
+    .monster-card.hint      { border-color:#ffdd00; box-shadow:0 0 18px #ffdd00bb; animation:hintPulse 0.9s ease-in-out infinite; }
+    .monster-card.dragging  { opacity:0.4; transform:scale(0.92); cursor:grabbing; }
+    .monster-card.drag-over { border-color:#ff00cc; box-shadow:0 0 20px #ff00cc88; transform:scale(1.07); }
+    .monster-card.all-done  { border-color:var(--green); box-shadow:0 0 12px var(--green)55; }
+    @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+    @keyframes hintPulse{0%,100%{box-shadow:0 0 14px #ffdd0088;}50%{box-shadow:0 0 30px #ffdd00cc;}}
+    .monster-emoji { font-size:26px; margin-bottom:5px; pointer-events:none; }
+    .monster-name  { font-size:6px; color:var(--tx3); margin-bottom:3px; font-family:'Press Start 2P',cursive; pointer-events:none; }
+    .monster-hp    { font-family:'Press Start 2P',cursive; font-size:11px; color:var(--tx); margin-bottom:5px; pointer-events:none; }
+    .hp-bar  { height:4px; background:var(--bg4); border-radius:3px; overflow:hidden; pointer-events:none; }
+    .hp-fill { height:100%; border-radius:3px; transition:width 0.25s; }
+    .combo-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; min-height:30px; }
+    .combo-num   { font-family:'Press Start 2P',cursive; font-size:clamp(14px,3vw,24px); color:#ff00cc; text-shadow:0 0 12px #ff00ccaa; }
+    .combo-label { font-family:'Press Start 2P',cursive; font-size:6px; color:var(--tx3); }
 
     /* SIDE PANEL */
-    .side-panel { display: flex; flex-direction: column; gap: 14px; }
-    .panel-box  { background: #0b0b18; border: 1px solid #00ff8820; border-radius: 8px; padding: 15px; }
-    .panel-title { font-family: 'Press Start 2P', cursive; font-size: 8px; color: #00ffff; margin-bottom: 12px; }
-    .pseudo-code { font-size: 11px; line-height: 1.9; }
-    .pseudo-line { padding: 2px 6px; border-radius: 2px; color: #444; transition: all 0.15s; }
-    .pseudo-line.active { background: #00ff8820; color: #00ff88; border-left: 2px solid #00ff88; }
-    .pseudo-line.indent1 { padding-left: 18px; }
-    .pseudo-line.indent2 { padding-left: 32px; }
-    .pseudo-line.indent3 { padding-left: 46px; }
-    .complexity-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 6px; }
-    .complexity-badge.bad  { background: #ff334420; color: #ff5566; border: 1px solid #ff3344; }
-    .complexity-badge.mid  { background: #ffdd0020; color: #ffdd44; border: 1px solid #ffdd00; }
-    .complexity-badge.good { background: #00ff8820; color: #00ff88; border: 1px solid #00ff88; }
+    .side-panel { display:flex; flex-direction:column; gap:12px; }
+    .panel-box  { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:14px; }
+    .panel-title { font-family:'Press Start 2P',cursive; font-size:8px; color:var(--cyan); margin-bottom:10px; }
+    .pseudo-code { font-size:10px; line-height:1.9; }
+    .pseudo-line { padding:2px 5px; border-radius:2px; color:var(--tx4); transition:all 0.15s; }
+    .pseudo-line.active { background:var(--green)20; color:var(--green); border-left:2px solid var(--green); }
+    .pseudo-line.indent1{padding-left:16px;} .pseudo-line.indent2{padding-left:28px;} .pseudo-line.indent3{padding-left:40px;}
+    .complexity-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:bold; margin-top:5px; }
+    .complexity-badge.bad  { background:#ff334420; color:#ff5566; border:1px solid #ff3344; }
+    .complexity-badge.mid  { background:#ffdd0020; color:#ffdd44; border:1px solid #ffdd00; }
+    .complexity-badge.good { background:var(--green)20; color:var(--green); border:1px solid var(--green); }
 
     /* RESULTS */
-    .results-overlay { position: fixed; inset: 0; background: rgba(7,7,15,0.9); display: flex; align-items: center; justify-content: center; z-index: 200; }
-    .results-card { background: #0b0b18; border: 2px solid #00ff88; border-radius: 14px; padding: 40px 36px; text-align: center; max-width: 440px; width: 90%; box-shadow: 0 0 60px #00ff8830; }
-    .results-title { font-family: 'Press Start 2P', cursive; font-size: 15px; color: #00ff88; margin-bottom: 20px; }
-    .stars-row { display: flex; justify-content: center; gap: 14px; margin: 18px 0 24px; }
-    .star { font-size: 44px; }
-    .star.lit  { filter: drop-shadow(0 0 10px #ffdd00); }
-    .star.dark { filter: grayscale(1) brightness(0.25); }
-    .results-stat { font-family: 'Press Start 2P', cursive; font-size: 8px; color: #666; margin: 8px 0; }
-    .results-stat span { color: #ddd; }
+    .results-overlay { position:fixed; inset:0; background:var(--bg0)ee; display:flex; align-items:center; justify-content:center; z-index:200; }
+    .results-card { background:var(--bg1); border:2px solid var(--green); border-radius:14px; padding:36px 32px; text-align:center; max-width:420px; width:90%; box-shadow:0 0 60px var(--green)30; }
+    .results-title { font-family:'Press Start 2P',cursive; font-size:14px; color:var(--green); margin-bottom:18px; }
+    .stars-row { display:flex; justify-content:center; gap:12px; margin:16px 0 22px; }
+    .star { font-size:40px; }
+    .star.lit  { filter:drop-shadow(0 0 10px #ffdd00); }
+    .star.dark { filter:grayscale(1) brightness(0.25); }
+    .results-stat { font-family:'Press Start 2P',cursive; font-size:7px; color:var(--tx3); margin:7px 0; }
+    .results-stat span { color:var(--tx); }
 
     /* PATH */
-    .path-layout { display: grid; grid-template-columns: 1fr 270px; gap: 20px; }
-    @media (max-width: 860px) { .path-layout { grid-template-columns: 1fr; } }
-    .dungeon-area { background: #0b0b18; border: 1px solid #00ff8820; border-radius: 8px; padding: 16px; }
-    .dungeon-grid { display: inline-grid; gap: 1px; background: #0d0d1a; border: 1px solid #1a1a2a; cursor: crosshair; user-select: none; }
-    .grid-cell { width: 26px; height: 26px; transition: background-color 0.08s; }
-    .cell-empty   { background: #0e0e1e; } .cell-empty:hover { background: #1a1a2e; }
-    .cell-wall    { background: #1e1e1e; border: 1px solid #2a2a2a; }
-    .cell-start   { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
-    .cell-end     { background: #ff3355; box-shadow: 0 0 6px #ff3355; }
-    .cell-open    { background: #1133cc99; }
-    .cell-closed  { background: #1a1a36; }
-    .cell-path    { background: #00ffff; box-shadow: 0 0 5px #00ffff99; }
-    .cell-current { background: #ffdd00; box-shadow: 0 0 8px #ffdd0099; }
-    .tool-select { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .tool-btn { padding: 6px 13px; border: 1px solid #333; background: #0e0e1e; color: #666; cursor: pointer; font-size: 10px; transition: all 0.18s; border-radius: 4px; }
-    .tool-btn.active { border-color: #00ffff; color: #00ffff; background: #00ffff12; }
-    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #777; }
-    .legend-dot { width: 13px; height: 13px; border-radius: 2px; flex-shrink: 0; }
-    .queue-panel { max-height: 180px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #00ff88 #111; }
-    .queue-item { display: flex; justify-content: space-between; padding: 4px 8px; border-bottom: 1px solid #1a1a2e; font-size: 10px; font-family: 'Courier New', monospace; }
-    .queue-item:first-child { background: #00ff8812; color: #00ff88; }
-    .queue-item .q-pos { color: #00ffff; } .queue-item .q-f { color: #ff00cc; } .queue-item .q-g { color: #ffdd00; }
+    .path-layout { display:grid; grid-template-columns:1fr 260px; gap:18px; }
+    @media(max-width:860px){.path-layout{grid-template-columns:1fr;}}
+    .dungeon-area { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:14px; }
+    .dungeon-grid { display:inline-grid; gap:1px; background:var(--bg0); border:1px solid var(--bd); cursor:crosshair; user-select:none; touch-action:none; }
+    .grid-cell { width:25px; height:25px; transition:background-color 0.08s; }
+    .cell-empty   { background:var(--bg2); } .cell-empty:hover{background:var(--bg3);}
+    .cell-wall    { background:var(--bd); border:1px solid var(--bd2); }
+    .cell-start   { background:var(--green); box-shadow:0 0 6px var(--green); }
+    .cell-end     { background:#ff3355; box-shadow:0 0 6px #ff3355; }
+    .cell-open    { background:#1133cc99; } .cell-closed { background:#1a1a3688; }
+    .cell-path    { background:var(--cyan); box-shadow:0 0 5px var(--cyan)99; }
+    .cell-current { background:#ffdd00; box-shadow:0 0 8px #ffdd0099; }
+    .tool-select { display:flex; gap:7px; margin-bottom:10px; flex-wrap:wrap; }
+    .tool-btn { padding:6px 12px; border:1px solid var(--bd2); background:var(--bg2); color:var(--tx3); cursor:pointer; font-size:10px; transition:all 0.18s; border-radius:4px; }
+    .tool-btn.active { border-color:var(--cyan); color:var(--cyan); background:var(--cyan)12; }
+    .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--tx3); }
+    .legend-dot { width:12px; height:12px; border-radius:2px; flex-shrink:0; }
+    .queue-panel { max-height:170px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--green) var(--bg0); }
+    .queue-item { display:flex; justify-content:space-between; padding:4px 7px; border-bottom:1px solid var(--bd); font-size:10px; font-family:'Courier New',monospace; }
+    .queue-item:first-child { background:var(--green)12; color:var(--green); }
+    .q-pos{color:var(--cyan);} .q-f{color:#ff00cc;} .q-g{color:#ffdd00;}
+
+    /* BINARY SEARCH */
+    .bs-layout { display:grid; grid-template-columns:1fr 260px; gap:18px; }
+    @media(max-width:860px){.bs-layout{grid-template-columns:1fr;}}
+    .bs-arena { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:20px; }
+    .bs-array { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:20px 0; }
+    .bs-cell { width:56px; height:68px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; border:2px solid var(--bd); background:var(--bg3); font-family:'Press Start 2P',cursive; transition:all 0.25s; position:relative; }
+    .bs-cell .bs-val { font-size:13px; color:var(--tx); }
+    .bs-cell .bs-idx { font-size:6px; color:var(--tx4); margin-top:4px; }
+    .bs-cell.mid     { border-color:#ffdd00; box-shadow:0 0 14px #ffdd0088; background:#ffdd0015; }
+    .bs-cell.found   { border-color:var(--green); box-shadow:0 0 16px var(--green)88; background:var(--green)15; animation:foundPop 0.4s; }
+    .bs-cell.elim    { opacity:0.25; }
+    .bs-cell.target-pick { border-color:var(--cyan); box-shadow:0 0 12px var(--cyan)66; cursor:pointer; }
+    .bs-cell.target-pick:hover { transform:scale(1.08); }
+    @keyframes foundPop{0%{transform:scale(1.3);}100%{transform:scale(1);}}
+    .bs-ptr { font-size:7px; font-family:'Press Start 2P',cursive; position:absolute; bottom:-18px; white-space:nowrap; }
+
+    /* GRAPH BFS/DFS */
+    .graph-layout { display:grid; grid-template-columns:1fr 260px; gap:18px; }
+    @media(max-width:860px){.graph-layout{grid-template-columns:1fr;}}
+    .graph-arena { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:16px; }
+    .graph-svg { display:block; width:100%; max-width:560px; height:320px; }
+    .graph-node { cursor:pointer; transition:all 0.2s; }
+    .graph-node circle { transition:all 0.25s; }
+    .graph-node text { font-family:'Press Start 2P',cursive; font-size:11px; pointer-events:none; fill:var(--tx); }
+    .graph-edge { stroke:var(--bd2); stroke-width:2; transition:stroke 0.25s; }
+    .graph-edge.visited { stroke:var(--green)88; }
+    .traversal-order { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .order-badge { font-family:'Press Start 2P',cursive; font-size:8px; padding:4px 8px; border-radius:4px; background:var(--bg2); border:1px solid var(--bd2); color:var(--tx2); }
+    .order-badge.current { border-color:var(--green); color:var(--green); background:var(--green)15; }
+    .stack-panel { max-height:160px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--green) var(--bg0); }
+    .stack-item { padding:4px 7px; border-bottom:1px solid var(--bd); font-size:10px; font-family:'Courier New',monospace; color:var(--tx2); }
+    .stack-item:first-child { color:var(--green); background:var(--green)12; }
+
+    /* MULTIPLAYER */
+    .setup-container{display:flex;flex-direction:column;align-items:center;gap:28px;min-height:100vh;justify-content:center;padding:24px;}
+    .player-inputs{display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;}
+    .player-input-row{display:flex;align-items:center;gap:10px;}
+    .player-input-label{font-family:'Press Start 2P',cursive;font-size:8px;min-width:76px;}
+    .player-name-input{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx);padding:9px 13px;font-family:'Press Start 2P',cursive;font-size:8px;border-radius:4px;flex:1;outline:none;transition:border-color 0.2s;}
+    .player-name-input:focus{border-color:var(--green);}
+    .multi-leaderboard{display:flex;flex-direction:column;gap:10px;width:100%;margin:12px 0;}
+    .lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:2px solid;}
+    .lb-rank{font-family:'Press Start 2P',cursive;font-size:18px;min-width:36px;text-align:center;}
+    .lb-name{font-family:'Press Start 2P',cursive;font-size:9px;flex:1;}
+    .lb-stars{font-size:16px;}
+    .lb-meta{font-family:'Press Start 2P',cursive;font-size:7px;color:var(--tx3);text-align:right;}
+    .player-turn-badge{display:flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;border:2px solid;font-family:'Press Start 2P',cursive;font-size:8px;}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
 
-// ── SOUND ENGINE (Web Audio API — no external files) ──────────────────────
-let _audioCtx = null;
-let _muted = localStorage.getItem('algoquest_muted') === 'true';
-
-function getAudioCtx() {
-  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
-  return _audioCtx;
-}
-
-function tone(freq, type, duration, vol = 0.22, delay = 0) {
-  if (_muted) return;
-  try {
-    const ac = getAudioCtx();
-    const osc  = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.connect(gain);
-    gain.connect(ac.destination);
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
-    gain.gain.setValueAtTime(vol, ac.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + delay + duration);
-    osc.start(ac.currentTime + delay);
-    osc.stop(ac.currentTime + delay + duration + 0.01);
-  } catch(e) {}
-}
-
-const SFX = {
-  click:    () => { tone(900, 'square',   0.05, 0.12); },
-  swap:     () => { tone(440, 'square',   0.07, 0.18); tone(330, 'square', 0.07, 0.18, 0.08); },
-  compare:  () => { tone(700, 'square',   0.03, 0.06); },
-  wall:     () => { tone(120, 'square',   0.06, 0.12); },
-  hint:     () => { tone(1047,'sine',     0.08, 0.12); },
-  combo: (n) => {
-    const notes = [523, 659, 784, 1047, 1319];
-    const count = Math.min(n, notes.length);
-    for (let i = 0; i < count; i++) tone(notes[i], 'square', 0.1, 0.2, i * 0.09);
-  },
-  sorted: () => {
-    const seq = [[523,0],[659,0.1],[784,0.2],[1047,0.32],[784,0.46],[1047,0.56],[1319,0.68]];
-    seq.forEach(([f,d]) => tone(f, 'square', 0.18, 0.22, d));
-  },
-  star: (n) => {
-    const notes = [1047, 1319, 1568];
-    for (let i = 0; i < n; i++) tone(notes[i], 'sine', 0.18, 0.2, i * 0.15);
-  },
-  pathFound: () => {
-    [[440,0],[554,0.14],[659,0.28],[880,0.42]].forEach(([f,d]) => tone(f,'sine',0.22,0.2,d));
-  },
-  noPath: () => { tone(220,'sawtooth',0.25,0.2); tone(165,'sawtooth',0.3,0.2,0.22); },
-  back:   () => { tone(440,'square',0.06,0.12); tone(330,'square',0.06,0.12,0.07); },
-  menuSelect: () => { tone(660,'square',0.05,0.15); tone(880,'square',0.1,0.2,0.06); },
+// ── SOUND ENGINE ──────────────────────────────────────────────────────────
+let _audioCtx=null, _muted=localStorage.getItem('aq_muted')==='true';
+function getAC(){if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(_audioCtx.state==='suspended')_audioCtx.resume();return _audioCtx;}
+function tone(f,t,d,v=0.22,delay=0){if(_muted)return;try{const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type=t;o.frequency.setValueAtTime(f,ac.currentTime+delay);g.gain.setValueAtTime(v,ac.currentTime+delay);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+delay+d);o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+d+0.01);}catch(e){}}
+const SFX={
+  click:    ()=>tone(900,'square',0.05,0.12),
+  swap:     ()=>{tone(440,'square',0.07,0.18);tone(330,'square',0.07,0.18,0.08);},
+  compare:  ()=>tone(700,'square',0.03,0.06),
+  wall:     ()=>tone(120,'square',0.06,0.12),
+  combo:    n=>{const ns=[523,659,784,1047,1319];for(let i=0;i<Math.min(n,5);i++)tone(ns[i],'square',0.1,0.2,i*0.09);},
+  sorted:   ()=>{[[523,0],[659,.1],[784,.2],[1047,.32],[784,.46],[1047,.56],[1319,.68]].forEach(([f,d])=>tone(f,'square',0.18,0.22,d));},
+  star:     n=>{[1047,1319,1568].slice(0,n).forEach((f,i)=>tone(f,'sine',0.18,0.2,i*0.15));},
+  pathFound:()=>{[[440,0],[554,.14],[659,.28],[880,.42]].forEach(([f,d])=>tone(f,'sine',0.22,0.2,d));},
+  noPath:   ()=>{tone(220,'sawtooth',0.25,0.2);tone(165,'sawtooth',0.3,0.2,0.22);},
+  back:     ()=>{tone(440,'square',0.06,0.12);tone(330,'square',0.06,0.12,0.07);},
+  select:   ()=>{tone(660,'square',0.05,0.15);tone(880,'square',0.1,0.2,0.06);},
+  found:    ()=>{[[880,0],[1047,.12],[1319,.24]].forEach(([f,d])=>tone(f,'sine',0.15,0.25,d));},
+  unlock:   ()=>{[523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,'sine',0.18,0.2,i*0.07));},
 };
+function toggleMute(){_muted=!_muted;localStorage.setItem('aq_muted',_muted);return _muted;}
 
-function toggleMute() {
-  _muted = !_muted;
-  localStorage.setItem('algoquest_muted', _muted);
-  return _muted;
+// ── THEME ─────────────────────────────────────────────────────────────────
+const ThemeCtx = createContext({theme:'dark',toggle:()=>{}});
+function useTheme(){return useContext(ThemeCtx);}
+
+// ── SCORES ────────────────────────────────────────────────────────────────
+function getScores(){return JSON.parse(localStorage.getItem('aq_scores')||'{}');}
+function saveScore(levelKey,stars,timeS){
+  const s=getScores(); const k=levelKey;
+  const cur=s[k];
+  if(!cur||stars>cur.stars||(stars===cur.stars&&timeS<(cur.time||Infinity))){
+    s[k]={stars,time:timeS}; localStorage.setItem('aq_scores',JSON.stringify(s));
+    if(!cur||stars>cur.stars) SFX.unlock();
+  }
 }
+function getBest(levelKey){return getScores()[levelKey]||null;}
+function isUnlocked(levelKey){
+  if(levelKey==='easy') return true;
+  if(levelKey==='medium') return (getBest('easy')?.stars||0)>=1;
+  return (getBest('medium')?.stars||0)>=1;
+}
+function fmtTime(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
 
 // ── DATA ──────────────────────────────────────────────────────────────────
-const MONSTERS = [
-  { emoji: '🐲', name: 'DRAGON',  color: '#ff4455' },
-  { emoji: '👹', name: 'OGRE',    color: '#ff8800' },
-  { emoji: '🧟', name: 'ZOMBIE',  color: '#88bb00' },
-  { emoji: '👻', name: 'GHOST',   color: '#8899ff' },
-  { emoji: '🦇', name: 'BAT',     color: '#9955ff' },
-  { emoji: '🕷️', name: 'SPIDER',  color: '#bb5500' },
-  { emoji: '🐺', name: 'WOLF',    color: '#999999' },
-  { emoji: '🦂', name: 'SCORP',   color: '#ffcc00' },
-  { emoji: '🧌', name: 'TROLL',   color: '#66aa44' },
-  { emoji: '💀', name: 'SKULL',   color: '#cc44cc' },
+const MONSTERS=[
+  {emoji:'🐲',name:'DRAGON',color:'#ff4455'},{emoji:'👹',name:'OGRE',color:'#ff8800'},
+  {emoji:'🧟',name:'ZOMBIE',color:'#88bb00'},{emoji:'👻',name:'GHOST',color:'#8899ff'},
+  {emoji:'🦇',name:'BAT',color:'#9955ff'},{emoji:'🕷️',name:'SPIDER',color:'#bb5500'},
+  {emoji:'🐺',name:'WOLF',color:'#999999'},{emoji:'🦂',name:'SCORP',color:'#ffcc00'},
+  {emoji:'🧌',name:'TROLL',color:'#66aa44'},{emoji:'💀',name:'SKULL',color:'#cc44cc'},
 ];
-
-const LEVELS = {
-  easy:   { count: 6,  label: 'EASY',   color: '#00ff88', icon: '🌱', desc: '6 monsters' },
-  medium: { count: 8,  label: 'MEDIUM', color: '#ffdd00', icon: '⚔️',  desc: '8 monsters' },
-  hard:   { count: 10, label: 'HARD',   color: '#ff3355', icon: '💀', desc: '10 monsters' },
+const LEVELS={
+  easy:  {count:6, label:'EASY',  color:'#00ff88',icon:'🌱',desc:'6 monsters'},
+  medium:{count:8, label:'MEDIUM',color:'#ffdd00',icon:'⚔️', desc:'8 monsters'},
+  hard:  {count:10,label:'HARD',  color:'#ff3355',icon:'💀',desc:'10 monsters'},
 };
 
-const cloneArr = a => [...a];
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const cloneArr=a=>[...a];
+function countInversions(arr){let inv=0;for(let i=0;i<arr.length-1;i++)for(let j=i+1;j<arr.length;j++)if(arr[i]>arr[j])inv++;return inv;}
+function getBubbleHint(arr){for(let i=0;i<arr.length-1;i++)if(arr[i]>arr[i+1])return[i,i+1];return null;}
+function isSorted(arr){return arr.every((v,i)=>i===0||arr[i-1]<=v);}
+function calcStars(ps,opt){if(opt===0)return 3;const r=ps/opt;if(r<=1.3)return 3;if(r<=2.0)return 2;return 1;}
+function generateMonsters(levelKey){const COUNT=LEVELS[levelKey].count;const v=Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);let t=0;while(isSorted(v)&&t++<30){const i=Math.floor(Math.random()*COUNT),j=Math.floor(Math.random()*COUNT);[v[i],v[j]]=[v[j],v[i]];}return v.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp}));}
 
-function countInversions(arr) {
-  let inv = 0;
-  for (let i = 0; i < arr.length - 1; i++)
-    for (let j = i + 1; j < arr.length; j++)
-      if (arr[i] > arr[j]) inv++;
-  return inv;
+// ── SORTING STEPS ─────────────────────────────────────────────────────────
+function genBubble(arr){
+  const steps=[],a=cloneArr(arr),n=a.length,ss=new Set();
+  for(let i=0;i<n-1;i++){for(let j=0;j<n-i-1;j++){steps.push({arr:cloneArr(a),comparing:[j,j+1],swapping:[],sorted:[...ss],pivot:-1,pl:2});if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];steps.push({arr:cloneArr(a),comparing:[],swapping:[j,j+1],sorted:[...ss],pivot:-1,pl:4});}}ss.add(n-1-i);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pl:1});}
+  ss.add(0);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pl:5});return steps;
 }
-function getBubbleHint(arr) {
-  for (let i = 0; i < arr.length - 1; i++) if (arr[i] > arr[i+1]) return [i, i+1];
-  return null;
+function genQuick(arr){
+  const steps=[],a=cloneArr(arr),ss=new Set();
+  function part(lo,hi){let i=lo-1;steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:hi,pl:0});for(let j=lo;j<hi;j++){steps.push({arr:cloneArr(a),comparing:[j,hi],swapping:[],sorted:[...ss],pivot:hi,pl:2});if(a[j]<=a[hi]){i++;if(i!==j){[a[i],a[j]]=[a[j],a[i]];steps.push({arr:cloneArr(a),comparing:[],swapping:[i,j],sorted:[...ss],pivot:hi,pl:4});}}}[a[i+1],a[hi]]=[a[hi],a[i+1]];ss.add(i+1);steps.push({arr:cloneArr(a),comparing:[],swapping:[i+1,hi],sorted:[...ss],pivot:i+1,pl:5});return i+1;}
+  function qs(lo,hi){if(lo<hi){const pi=part(lo,hi);qs(lo,pi-1);qs(pi+1,hi);}else if(lo===hi){ss.add(lo);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pl:6});}}
+  qs(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pl:6});return steps;
 }
-function isSorted(arr) { return arr.every((v,i) => i===0 || arr[i-1]<=v); }
-function calcStars(ps, opt) { if(opt===0)return 3; const r=ps/opt; if(r<=1.3)return 3; if(r<=2.0)return 2; return 1; }
-
-// ── SORTING STEP GENERATORS ───────────────────────────────────────────────
-function generateBubbleSortSteps(arr) {
-  const steps=[], a=cloneArr(arr), n=a.length, ss=new Set();
-  for(let i=0;i<n-1;i++){
-    for(let j=0;j<n-i-1;j++){
-      steps.push({arr:cloneArr(a),comparing:[j,j+1],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:2});
-      if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];steps.push({arr:cloneArr(a),comparing:[],swapping:[j,j+1],sorted:[...ss],pivot:-1,pseudoLine:4});}
-    }
-    ss.add(n-1-i);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:1});
-  }
-  ss.add(0);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:5});
-  return steps;
+function genMerge(arr){
+  const steps=[],a=cloneArr(arr);
+  function merge(l,m,r){const L=a.slice(l,m+1),R=a.slice(m+1,r+1);let i=0,j=0,k=l;steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pl:3,mr:[l,r]});while(i<L.length&&j<R.length){steps.push({arr:cloneArr(a),comparing:[l+i,m+1+j],swapping:[],sorted:[],pivot:-1,pl:4,mr:[l,r]});if(L[i]<=R[j])a[k++]=L[i++];else a[k++]=R[j++];steps.push({arr:cloneArr(a),comparing:[],swapping:[k-1],sorted:[],pivot:-1,pl:5,mr:[l,r]});}while(i<L.length)a[k++]=L[i++];while(j<R.length)a[k++]=R[j++];steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pl:6,mr:[l,r]});}
+  function ms(l,r){if(l<r){const m=Math.floor((l+r)/2);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pl:0,mr:[l,r]});ms(l,m);ms(m+1,r);merge(l,m,r);}}
+  ms(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pl:7});return steps;
 }
-function generateQuickSortSteps(arr) {
-  const steps=[], a=cloneArr(arr), ss=new Set();
-  function partition(lo,hi){
-    let i=lo-1;steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:hi,pseudoLine:0});
-    for(let j=lo;j<hi;j++){steps.push({arr:cloneArr(a),comparing:[j,hi],swapping:[],sorted:[...ss],pivot:hi,pseudoLine:2});if(a[j]<=a[hi]){i++;if(i!==j){[a[i],a[j]]=[a[j],a[i]];steps.push({arr:cloneArr(a),comparing:[],swapping:[i,j],sorted:[...ss],pivot:hi,pseudoLine:4});}}}
-    [a[i+1],a[hi]]=[a[hi],a[i+1]];ss.add(i+1);steps.push({arr:cloneArr(a),comparing:[],swapping:[i+1,hi],sorted:[...ss],pivot:i+1,pseudoLine:5});return i+1;
-  }
-  function qs(lo,hi){if(lo<hi){const pi=partition(lo,hi);qs(lo,pi-1);qs(pi+1,hi);}else if(lo===hi){ss.add(lo);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:6});}}
-  qs(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pseudoLine:6});
-  return steps;
-}
-function generateMergeSortSteps(arr) {
-  const steps=[], a=cloneArr(arr);
-  function merge(l,m,r){
-    const left=a.slice(l,m+1),right=a.slice(m+1,r+1);let i=0,j=0,k=l;
-    steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pseudoLine:3,mergeRange:[l,r]});
-    while(i<left.length&&j<right.length){steps.push({arr:cloneArr(a),comparing:[l+i,m+1+j],swapping:[],sorted:[],pivot:-1,pseudoLine:4,mergeRange:[l,r]});if(left[i]<=right[j])a[k++]=left[i++];else a[k++]=right[j++];steps.push({arr:cloneArr(a),comparing:[],swapping:[k-1],sorted:[],pivot:-1,pseudoLine:5,mergeRange:[l,r]});}
-    while(i<left.length)a[k++]=left[i++];while(j<right.length)a[k++]=right[j++];
-    steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pseudoLine:6,mergeRange:[l,r]});
-  }
-  function ms(l,r){if(l<r){const m=Math.floor((l+r)/2);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pseudoLine:0,mergeRange:[l,r]});ms(l,m);ms(m+1,r);merge(l,m,r);}}
-  ms(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pseudoLine:7});
-  return steps;
-}
-
-const PSEUDOCODES = {
-  bubble: [{text:'for i = 0 to n-1:',indent:0},{text:'for j = 0 to n-i-2:',indent:1},{text:'compare arr[j], arr[j+1]',indent:2},{text:'if arr[j] > arr[j+1]:',indent:2},{text:'swap(arr[j], arr[j+1])',indent:3},{text:'// Sorted!  ✓',indent:0}],
-  quick:  [{text:'pivot = arr[high]',indent:0},{text:'i = low - 1',indent:0},{text:'for j = low to high-1:',indent:0},{text:'if arr[j] <= pivot:',indent:1},{text:'swap(arr[++i], arr[j])',indent:2},{text:'swap(arr[i+1], pivot) → placed!',indent:1},{text:'recurse left & right halves',indent:0},{text:'// Sorted!  ✓',indent:0}],
-  merge:  [{text:'mergesort(l, r):',indent:0},{text:'if l < r:',indent:1},{text:'m = (l + r) / 2',indent:2},{text:'merge(l, m, r) →',indent:1},{text:'compare left[i] vs right[j]',indent:2},{text:'place smaller element',indent:3},{text:'copy remaining elements',indent:2},{text:'// Sorted!  ✓',indent:0}],
+const PSEUDO={
+  bubble:[{t:'for i = 0 to n-1:',i:0},{t:'for j = 0 to n-i-2:',i:1},{t:'compare arr[j], arr[j+1]',i:2},{t:'if arr[j] > arr[j+1]:',i:2},{t:'swap(arr[j], arr[j+1])',i:3},{t:'// Sorted! ✓',i:0}],
+  quick: [{t:'pivot = arr[high]',i:0},{t:'i = low - 1',i:0},{t:'for j = low to high-1:',i:0},{t:'if arr[j] <= pivot:',i:1},{t:'swap(arr[++i], arr[j])',i:2},{t:'swap(arr[i+1], pivot)',i:1},{t:'recurse halves',i:0},{t:'// Sorted! ✓',i:0}],
+  merge: [{t:'mergesort(l, r):',i:0},{t:'if l < r:',i:1},{t:'m = (l+r)/2',i:2},{t:'merge(l, m, r) →',i:1},{t:'compare left vs right',i:2},{t:'place smaller',i:3},{t:'copy remaining',i:2},{t:'// Sorted! ✓',i:0}],
 };
-const COMPLEXITIES = {
-  bubble:{time:'O(n²)',space:'O(1)',badge:'bad'},
-  quick: {time:'O(n log n)',space:'O(log n)',badge:'mid'},
-  merge: {time:'O(n log n)',space:'O(n)',badge:'mid'},
-};
+const COMPL={bubble:{time:'O(n²)',space:'O(1)',b:'bad'},quick:{time:'O(n log n)',space:'O(log n)',b:'mid'},merge:{time:'O(n log n)',space:'O(n)',b:'mid'}};
 
 // ── PATHFINDING ───────────────────────────────────────────────────────────
-const ROWS=18, COLS=24;
-const createGrid = () => Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>({r,c,wall:false})));
-function generateMaze() {
-  const g=createGrid();
-  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(Math.random()<0.28)g[r][c].wall=true;
-  [[1,1],[1,2],[2,1],[ROWS-2,COLS-2],[ROWS-2,COLS-3],[ROWS-3,COLS-2]].forEach(([r,c])=>{if(r>=0&&r<ROWS&&c>=0&&c<COLS)g[r][c].wall=false;});
-  return g;
-}
-function manhattan(r1,c1,r2,c2){return Math.abs(r1-r2)+Math.abs(c1-c2);}
-function runPathfinding(grid,start,end,astar){
+const ROWS=18,COLS=24;
+const mkGrid=()=>Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>({r,c,wall:false})));
+function genMaze(){const g=mkGrid();for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(Math.random()<0.28)g[r][c].wall=true;[[1,1],[1,2],[2,1],[ROWS-2,COLS-2],[ROWS-2,COLS-3],[ROWS-3,COLS-2]].forEach(([r,c])=>{if(r>=0&&r<ROWS&&c>=0&&c<COLS)g[r][c].wall=false;});return g;}
+function mh(r1,c1,r2,c2){return Math.abs(r1-r2)+Math.abs(c1-c2);}
+function runPath(grid,start,end,astar){
   const frames=[],dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity)),prev=Array.from({length:ROWS},()=>Array(COLS).fill(null));
-  dist[start[0]][start[1]]=0;
-  let open=[{r:start[0],c:start[1],g:0,f:0}];
-  const visited=new Set(),openSet=new Set([`${start[0]},${start[1]}`]);
-  while(open.length>0){
-    open.sort((a,b)=>a.f-b.f);const curr=open.shift(),key=`${curr.r},${curr.c}`;openSet.delete(key);
-    if(visited.has(key))continue;visited.add(key);
-    frames.push({visited:new Set(visited),open:new Set(openSet),current:[curr.r,curr.c],queue:open.slice(0,12).map(x=>({...x}))});
-    if(curr.r===end[0]&&curr.c===end[1])break;
-    for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
-      const nr=curr.r+dr,nc=curr.c+dc;
-      if(nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc].wall)continue;
-      const nk=`${nr},${nc}`;if(visited.has(nk))continue;
-      const ng=curr.g+1;if(ng<dist[nr][nc]){dist[nr][nc]=ng;prev[nr][nc]=[curr.r,curr.c];const h=astar?manhattan(nr,nc,end[0],end[1]):0;openSet.add(nk);open.push({r:nr,c:nc,g:ng,f:ng+h});}
-    }
-  }
-  const path=[];let cur=end;
-  while(cur&&!(cur[0]===start[0]&&cur[1]===start[1])){path.unshift(cur);cur=prev[cur[0]][cur[1]];}
-  if(cur)path.unshift(start);
+  dist[start[0]][start[1]]=0;let open=[{r:start[0],c:start[1],g:0,f:0}];const vis=new Set(),os=new Set([`${start[0]},${start[1]}`]);
+  while(open.length){open.sort((a,b)=>a.f-b.f);const c=open.shift(),k=`${c.r},${c.c}`;os.delete(k);if(vis.has(k))continue;vis.add(k);frames.push({visited:new Set(vis),open:new Set(os),current:[c.r,c.c],queue:open.slice(0,12).map(x=>({...x}))});if(c.r===end[0]&&c.c===end[1])break;for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=c.r+dr,nc=c.c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc].wall)continue;const nk=`${nr},${nc}`;if(vis.has(nk))continue;const ng=c.g+1;if(ng<dist[nr][nc]){dist[nr][nc]=ng;prev[nr][nc]=[c.r,c.c];const h=astar?mh(nr,nc,end[0],end[1]):0;os.add(nk);open.push({r:nr,c:nc,g:ng,f:ng+h});}}}
+  const path=[];let cur=end;while(cur&&!(cur[0]===start[0]&&cur[1]===start[1])){path.unshift(cur);cur=prev[cur[0]][cur[1]];}if(cur)path.unshift(start);
   const found=path.length>1&&path[path.length-1][0]===end[0]&&path[path.length-1][1]===end[1];
-  if(frames.length>0)frames[frames.length-1]={...frames[frames.length-1],path:found?path:[],found};
-  return {frames,path:found?path:[],found};
+  if(frames.length)frames[frames.length-1]={...frames[frames.length-1],path:found?path:[],found};
+  return{frames,path:found?path:[],found};
 }
 
-// ── MUTE BUTTON ───────────────────────────────────────────────────────────
-function MuteBtn() {
-  const [muted, setMuted] = useState(_muted);
-  const handle = () => { const m=toggleMute(); setMuted(m); SFX.click(); };
-  return <button className={`mute-btn ${muted?'muted':''}`} onClick={handle} title={muted?'Unmute':'Mute'}>{muted?'🔇':'🔊'}</button>;
+// ── BINARY SEARCH ─────────────────────────────────────────────────────────
+function genBSArray(n){const s=new Set();while(s.size<n)s.add(Math.floor(Math.random()*90)+10);return[...s].sort((a,b)=>a-b);}
+function genBSSteps(arr,target){
+  const steps=[];let lo=0,hi=arr.length-1,found=false;
+  while(lo<=hi){const mid=Math.floor((lo+hi)/2);steps.push({lo,hi,mid,target,phase:'check'});if(arr[mid]===target){steps.push({lo,hi,mid,target,phase:'found'});found=true;break;}else if(arr[mid]<target){steps.push({lo,hi,mid,target,phase:'goRight'});lo=mid+1;}else{steps.push({lo,hi,mid,target,phase:'goLeft'});hi=mid-1;}}
+  if(!found)steps.push({lo,hi,mid:-1,target,phase:'notFound'});
+  return steps;
 }
 
-// ── RESULTS OVERLAY ───────────────────────────────────────────────────────
-function ResultsOverlay({stars,playerSwaps,optimalSwaps,onRetry,onMenu}) {
-  useEffect(() => { SFX.star(stars); }, [stars]);
-  const pct=optimalSwaps===0?100:Math.min(100,Math.round((optimalSwaps/playerSwaps)*100));
-  return (
+// ── GRAPH BFS/DFS ─────────────────────────────────────────────────────────
+const GNODES=[
+  {id:0,x:280,y:30, label:'A'},{id:1,x:140,y:110,label:'B'},{id:2,x:420,y:110,label:'C'},
+  {id:3,x:60, y:200,label:'D'},{id:4,x:210,y:200,label:'E'},{id:5,x:360,y:200,label:'F'},{id:6,x:490,y:200,label:'G'},
+  {id:7,x:110,y:290,label:'H'},{id:8,x:280,y:290,label:'I'},{id:9,x:430,y:290,label:'J'},
+];
+const GEDGES=[[0,1],[0,2],[1,3],[1,4],[2,5],[2,6],[3,7],[4,8],[5,8],[5,9],[6,9]];
+function edgeKey(a,b){return`${Math.min(a,b)}-${Math.max(a,b)}`;}
+function neighbors(id){return GEDGES.filter(([a,b])=>a===id||b===id).map(([a,b])=>a===id?b:a).sort((a,b)=>a-b);}
+function genBFS(start){
+  const steps=[],vis=new Set(),queue=[start];vis.add(start);
+  while(queue.length){const cur=queue.shift();steps.push({visited:new Set(vis),current:cur,queue:[...queue],stack:null});for(const n of neighbors(cur)){if(!vis.has(n)){vis.add(n);queue.push(n);}}}
+  return steps;
+}
+function genDFS(start){
+  const steps=[],vis=new Set(),stack=[start];
+  while(stack.length){const cur=stack.pop();if(vis.has(cur))continue;vis.add(cur);steps.push({visited:new Set(vis),current:cur,stack:[...stack],queue:null});for(const n of [...neighbors(cur)].reverse())if(!vis.has(n))stack.push(n);}
+  return steps;
+}
+
+// ── SHARED COMPONENTS ─────────────────────────────────────────────────────
+function MuteBtn(){
+  const[muted,setMuted]=useState(_muted);
+  return <button className={`icon-btn${muted?' muted':''}`} onClick={()=>{const m=toggleMute();setMuted(m);}} title={muted?'Unmute':'Mute'}>{muted?'🔇':'🔊'}</button>;
+}
+function ThemeBtn(){
+  const{theme,toggle}=useTheme();
+  return <button className="icon-btn" onClick={()=>{SFX.click();toggle();}} title="Toggle theme">{theme==='dark'?'☀️':'🌙'}</button>;
+}
+function HeaderRight(){return <div className="header-right"><ThemeBtn/><MuteBtn/></div>;}
+
+function ResultsOverlay({stars,playerSwaps,optSwaps,timeS,timerOn,onRetry,onMenu,playerName,nextPlayerName,onNext}){
+  const pct=optSwaps===0?100:Math.min(100,Math.round((optSwaps/playerSwaps)*100));
+  const trunc=n=>n&&n.length>9?n.slice(0,9)+'…':n;
+  useEffect(()=>SFX.star(stars),[stars]);
+  return(
     <div className="results-overlay">
       <div className="results-card">
+        {playerName&&<div style={{fontFamily:"'Press Start 2P',cursive",fontSize:8,color:'var(--tx3)',marginBottom:10}}>👤 {playerName}</div>}
         <div className="results-title">{stars===3?'🏆 PERFECT!':stars===2?'⚔️ GREAT!':'💡 GOOD TRY!'}</div>
         <div className="stars-row">{[1,2,3].map(s=><span key={s} className={`star ${s<=stars?'lit':'dark'}`}>⭐</span>)}</div>
         <div className="results-stat">YOUR SWAPS: <span>{playerSwaps}</span></div>
-        <div className="results-stat">PAR (OPTIMAL): <span>{optimalSwaps}</span></div>
+        <div className="results-stat">PAR (OPTIMAL): <span>{optSwaps}</span></div>
         <div className="results-stat">EFFICIENCY: <span style={{color:pct>=80?'#00ff88':pct>=50?'#ffdd00':'#ff5566'}}>{pct}%</span></div>
-        <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:24}}>
-          <button className="btn btn-green" onClick={()=>{SFX.click();onRetry();}}>↺ RETRY</button>
+        {timerOn&&<div className="results-stat">TIME: <span>{fmtTime(timeS)}</span></div>}
+        <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:22,flexWrap:'wrap'}}>
+          {nextPlayerName?(
+            <button className="btn btn-purple" onClick={()=>{SFX.click();onNext();}}>▶ PASS TO {trunc(nextPlayerName)}</button>
+          ):onNext?(
+            <button className="btn btn-green" onClick={()=>{SFX.click();onNext();}}>🏆 SEE RESULTS</button>
+          ):(
+            <button className="btn btn-green" onClick={()=>{SFX.click();onRetry();}}>↺ RETRY</button>
+          )}
+          <button className="btn btn-gray" onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MULTIPLAYER SETUP ─────────────────────────────────────────────────────
+const PCOLORS=['#00ff88','#ffdd00','#ff3355','#00ffff'];
+const PEMOJIS=['🧙','🧝','🧛','🧜'];
+
+function MultiSetup({levelKey,onStart,onBack}){
+  const[names,setNames]=useState(['','','','']);
+  const[count,setCount]=useState(2);
+  const go=()=>{const ps=Array.from({length:count},(_,i)=>names[i].trim()||`PLAYER ${i+1}`);SFX.click();onStart(ps);};
+  return(
+    <div className="setup-container">
+      <div>
+        <div className="game-title" style={{fontSize:'clamp(14px,4vw,26px)'}}>⚔ VS MODE</div>
+        <div className="game-subtitle" style={{marginTop:10}}>ENTER PLAYER NAMES</div>
+      </div>
+      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+        <span style={{fontFamily:"'Press Start 2P',cursive",fontSize:8,color:'var(--tx3)'}}>PLAYERS:</span>
+        {[1,2,3,4].map(n=><button key={n} className={`algo-btn${count===n?' active':''}`} onClick={()=>{SFX.click();setCount(n);}}>{n}</button>)}
+      </div>
+      <div className="player-inputs">
+        {Array.from({length:count},(_,i)=>(
+          <div key={i} className="player-input-row">
+            <span className="player-input-label" style={{color:PCOLORS[i]}}>{PEMOJIS[i]} P{i+1}</span>
+            <input className="player-name-input" style={{borderColor:names[i]?PCOLORS[i]+'66':'var(--bd2)'}}
+              placeholder={`Player ${i+1} name`} value={names[i]} maxLength={12}
+              onChange={e=>{const ns=[...names];ns[i]=e.target.value;setNames(ns);}}
+              onKeyDown={e=>{if(e.key==='Enter')go();}}
+            />
+          </div>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:12}}>
+        <button className="btn btn-green" onClick={go}>⚔ START BATTLE</button>
+        <button className="btn btn-gray" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+      </div>
+      <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx4)',textAlign:'center',lineHeight:2.2}}>
+        Same monsters — same PAR — who sorts best?
+      </div>
+    </div>
+  );
+}
+
+function MultiResults({results,onPlayAgain,onMenu}){
+  const sorted=[...results].sort((a,b)=>b.stars!==a.stars?b.stars-a.stars:a.swaps!==b.swaps?a.swaps-b.swaps:(a.time||999)-(b.time||999));
+  const medals=['🥇','🥈','🥉'];
+  const gold=['#ffdd00','#c0c0c0','#cd7f32'];
+  useEffect(()=>{SFX.star(3);},[]);
+  return(
+    <div className="results-overlay">
+      <div className="results-card" style={{maxWidth:520,width:'92%'}}>
+        <div className="results-title">🏆 BATTLE RESULTS!</div>
+        {results.length>1&&sorted[0]&&<div style={{fontFamily:"'Press Start 2P',cursive",fontSize:9,color:'#ffdd00',marginBottom:14}}>👑 {sorted[0].name} WINS!</div>}
+        <div className="multi-leaderboard">
+          {sorted.map((p,i)=>(
+            <div key={i} className="lb-row" style={{borderColor:i<3?gold[i]:'var(--bd)',background:i===0?'#ffdd0015':i===1?'#c0c0c010':i===2?'#cd7f3210':'var(--bg2)'}}>
+              <div className="lb-rank">{medals[i]||`${i+1}.`}</div>
+              <div className="lb-name" style={{color:i===0?'#ffdd00':'var(--tx)'}}>{p.name}</div>
+              <div className="lb-stars">{'⭐'.repeat(p.stars)}</div>
+              <div className="lb-meta"><div>{p.swaps} swaps</div>{p.timerOn&&p.time?<div>{fmtTime(p.time)}</div>:null}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:18}}>
+          <button className="btn btn-green" onClick={()=>{SFX.click();onPlayAgain();}}>↺ PLAY AGAIN</button>
           <button className="btn btn-gray"  onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
         </div>
       </div>
@@ -362,55 +461,72 @@ function ResultsOverlay({stars,playerSwaps,optimalSwaps,onRetry,onMenu}) {
 }
 
 // ── GAME MENU ─────────────────────────────────────────────────────────────
-function GameMenu({onSelect}) {
-  return (
+function GameMenu({onSelect}){
+  const{theme}=useTheme();
+  const modes=[
+    {id:'sort', icon:'👾',title:'MONSTER SORTER',desc:'Drag monsters to sort by HP. Watch Bubble, Quick & Merge sort live. Earn stars!',color:'#00ff88'},
+    {id:'path', icon:'🗺', title:'DUNGEON ESCAPE',desc:'A* vs Dijkstra pathfinding. Paint walls, move targets, compare algorithms.',color:'#00ffff'},
+    {id:'bsearch',icon:'🔍',title:'BINARY SEARCH',desc:'Pick a target. Watch binary search home in on it. Learn O(log n) in action.',color:'#ffdd00'},
+    {id:'graph', icon:'🕸️', title:'BFS / DFS GRAPH',desc:'Explore a graph with Breadth-First or Depth-First search. See the difference!',color:'#ff00cc'},
+  ];
+  return(
     <div className="menu-container">
       <div>
         <div className="game-title">⚔ ALGOQUEST ⚔</div>
         <div className="game-subtitle">ALGORITHM VISUALIZATION GAME</div>
       </div>
       <div className="mode-cards">
-        <div className="mode-card" onClick={()=>{SFX.menuSelect();onSelect('sort');}}>
-          <div className="mode-icon">👾</div>
-          <div className="mode-title">MONSTER SORTER</div>
-          <div className="mode-desc">Drag monsters to sort by HP — or watch Bubble, Merge &amp; Quick Sort run with live pseudocode. Earn up to 3 stars!</div>
-          <div className="mode-play" style={{color:'#00ff88'}}>▶ PLAY</div>
-        </div>
-        <div className="mode-card" onClick={()=>{SFX.menuSelect();onSelect('path');}}>
-          <div className="mode-icon">🗺</div>
-          <div className="mode-title">DUNGEON ESCAPE</div>
-          <div className="mode-desc">Watch A* and Dijkstra navigate a dungeon maze. Paint walls, move targets, compare algorithms live.</div>
-          <div className="mode-play" style={{color:'#00ffff'}}>▶ PLAY</div>
-        </div>
+        {modes.map(m=>(
+          <div key={m.id} className="mode-card" onClick={()=>{SFX.select();onSelect(m.id);}}>
+            <div className="mode-icon">{m.icon}</div>
+            <div className="mode-title" style={{color:m.color}}>{m.title}</div>
+            <div className="mode-desc">{m.desc}</div>
+            <div className="mode-play" style={{color:m.color}}>▶ PLAY</div>
+          </div>
+        ))}
       </div>
-      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
-        <MuteBtn/>
-        <div style={{color:'#333',fontSize:9,textAlign:'center',fontFamily:"'Press Start 2P',cursive"}}>LEARN CS ALGORITHMS THROUGH PLAY</div>
+      <div style={{display:'flex',gap:10,alignItems:'center'}}>
+        <ThemeBtn/><MuteBtn/>
+        <span style={{color:'var(--tx4)',fontSize:8,fontFamily:"'Press Start 2P',cursive"}}>LEARN CS THROUGH PLAY</span>
       </div>
     </div>
   );
 }
 
 // ── LEVEL SELECT ──────────────────────────────────────────────────────────
-function LevelSelect({onSelect,onBack}) {
-  return (
+function LevelSelect({onSelect,onMulti,onBack}){
+  const[vsMode,setVsMode]=useState(false);
+  const handle=(key)=>{if(!isUnlocked(key)){SFX.back();return;}SFX.select();vsMode?onMulti(key):onSelect(key);};
+  return(
     <div className="menu-container">
       <div>
-        <div className="game-title" style={{fontSize:'clamp(16px,4vw,32px)'}}>👾 MONSTER SORTER</div>
+        <div className="game-title" style={{fontSize:'clamp(14px,4vw,30px)'}}>👾 MONSTER SORTER</div>
         <div className="game-subtitle" style={{marginTop:10}}>CHOOSE DIFFICULTY</div>
       </div>
+      <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+        <button className={`algo-btn${!vsMode?' active':''}`} onClick={()=>{SFX.click();setVsMode(false);}}>🎮 SOLO</button>
+        <button className={`algo-btn${vsMode?' active':''}`} onClick={()=>{SFX.click();setVsMode(true);}}>⚔ VS MODE</button>
+        {vsMode&&<span style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'#ff00cc'}}>2-4 players, take turns!</span>}
+      </div>
       <div className="level-cards">
-        {Object.entries(LEVELS).map(([key,lv])=>(
-          <div key={key} className="level-card" style={{borderColor:lv.color+'44'}}
-            onClick={()=>{SFX.menuSelect();onSelect(key);}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=lv.color;e.currentTarget.style.boxShadow=`0 0 20px ${lv.color}33`;e.currentTarget.style.transform='translateY(-5px)';}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=lv.color+'44';e.currentTarget.style.boxShadow='none';e.currentTarget.style.transform='';}}
-          >
-            <div className="level-icon">{lv.icon}</div>
-            <div className="level-label" style={{color:lv.color}}>{lv.label}</div>
-            <div className="level-count">{lv.desc}</div>
-          </div>
-        ))}
+        {Object.entries(LEVELS).map(([key,lv])=>{
+          const locked=!isUnlocked(key); const best=getBest(key);
+          return(
+            <div key={key} className={`level-card${locked?' locked':''}`} style={{borderColor:lv.color+(locked?'22':'44')}}
+              onClick={()=>handle(key)}
+              onMouseEnter={e=>{if(!locked){e.currentTarget.style.borderColor=lv.color;e.currentTarget.style.transform='translateY(-5px)';}}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=lv.color+(locked?'22':'44');e.currentTarget.style.transform='';}}
+            >
+              {locked&&<div className="lock-badge">🔒</div>}
+              <div className="level-icon">{lv.icon}</div>
+              <div className="level-label" style={{color:locked?'var(--tx3)':lv.color}}>{lv.label}</div>
+              <div className="level-count">{lv.desc}</div>
+              {best&&<div className="level-best">{'⭐'.repeat(best.stars)}{'☆'.repeat(3-best.stars)}</div>}
+              {!best&&!locked&&<div className="level-best" style={{color:'var(--tx4)',fontSize:8}}>Not played</div>}
+              {locked&&<div className="level-best" style={{color:'var(--tx4)',fontSize:8}}>Beat prev level</div>}
+            </div>
+          );
+        })}
       </div>
       <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
     </div>
@@ -418,59 +534,56 @@ function LevelSelect({onSelect,onBack}) {
 }
 
 // ── SORTING GAME ──────────────────────────────────────────────────────────
-function SortingGame({levelKey,onBack,onMenu}) {
-  const lv=LEVELS[levelKey], COUNT=lv.count;
+function SortingGame({levelKey,onBack,onMenu,initialMonsters,multiPlayers,multiPlayerIdx,onPlayerDone}){
+  const lv=LEVELS[levelKey],COUNT=lv.count;
+  const mkM=useCallback(()=>{if(initialMonsters)return initialMonsters.map(x=>({...x}));const v=Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);let t=0;while(isSorted(v)&&t++<30){const i=Math.floor(Math.random()*COUNT),j=Math.floor(Math.random()*COUNT);[v[i],v[j]]=[v[j],v[i]];}return v.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp}));},[COUNT,initialMonsters]);
 
-  const makeMonsters = useCallback(()=>{
-    const vals=Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);
-    let t=0;while(isSorted(vals)&&t++<30){const i=Math.floor(Math.random()*vals.length),j=Math.floor(Math.random()*vals.length);[vals[i],vals[j]]=[vals[j],vals[i]];}
-    return vals.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp}));
-  },[COUNT]);
+  const[gameMode,setGameMode]=useState('play');
+  const[monsters,setMonsters]=useState(()=>mkM());
+  const[initSnap,setInitSnap]=useState(null);
+  const[algo,setAlgo]=useState('bubble');
+  const[steps,setSteps]=useState([]);
+  const[stepIdx,setStepIdx]=useState(-1);
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(280);
+  const[swaps,setSwaps]=useState(0);
+  const[cmps,setCmps]=useState(0);
+  const[msg,setMsg]=useState('');
+  const[drag,setDrag]=useState({from:-1,to:-1});
+  const[pSwaps,setPSwaps]=useState(0);
+  const[combo,setCombo]=useState(0);
+  const[optInv,setOptInv]=useState(0);
+  const[showRes,setShowRes]=useState(false);
+  const[resStars,setResStars]=useState(0);
+  const[showHint,setShowHint]=useState(true);
+  const[timerOn,setTimerOn]=useState(false);
+  const[elapsed,setElapsed]=useState(0);
+  const[timerActive,setTimerActive]=useState(false);
+  const timerRef=useRef(null),stepTimer=useRef(null),intervalRef=useRef(null),stRef=useRef({monsters,pSwaps,optInv,drag,combo,elapsed});
 
-  const [gameMode,    setGameMode]    = useState('play');
-  const [monsters,    setMonsters]    = useState(()=>makeMonsters());
-  const [initSnap,    setInitSnap]    = useState(null);
-  const [algo,        setAlgo]        = useState('bubble');
-  const [steps,       setSteps]       = useState([]);
-  const [stepIdx,     setStepIdx]     = useState(-1);
-  const [isRunning,   setIsRunning]   = useState(false);
-  const [speed,       setSpeed]       = useState(280);
-  const [swapCount,   setSwapCount]   = useState(0);
-  const [cmpCount,    setCmpCount]    = useState(0);
-  const [message,     setMessage]     = useState('');
-  const [drag,        setDrag]        = useState({from:-1,to:-1});
-  const [playerSwaps, setPlayerSwaps] = useState(0);
-  const [combo,       setCombo]       = useState(0);
-  const [optInv,      setOptInv]      = useState(0);
-  const [showResults, setShowResults] = useState(false);
-  const [resultStars, setResultStars] = useState(0);
-  const [showHint,    setShowHint]    = useState(true);
-  const timerRef = useRef(null);
-  const stateRef = useRef({monsters,playerSwaps,optInv,drag});
-  const prevStepRef = useRef(null);
+  useEffect(()=>{stRef.current={monsters,pSwaps,optInv,drag,combo,elapsed};},[monsters,pSwaps,optInv,drag,combo,elapsed]);
+  useEffect(()=>{const s=monsters.map(m=>({...m}));setInitSnap(s);setOptInv(countInversions(s.map(m=>m.hp)));},[]);// eslint-disable-line
 
-  useEffect(()=>{ stateRef.current={monsters,playerSwaps,optInv,drag}; },[monsters,playerSwaps,optInv,drag]);
-
+  // Timer
   useEffect(()=>{
-    const snap=monsters.map(m=>({...m}));
-    setInitSnap(snap); setOptInv(countInversions(snap.map(m=>m.hp)));
-  },[]); // eslint-disable-line
+    if(timerActive){intervalRef.current=setInterval(()=>setElapsed(t=>t+1),1000);}
+    else clearInterval(intervalRef.current);
+    return()=>clearInterval(intervalRef.current);
+  },[timerActive]);
 
-  const currentStep=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
-  const displayArr=currentStep?currentStep.arr.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp})):monsters;
-  const maxHp=Math.max(...displayArr.map(m=>m.hp),1);
+  const cur=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const dispArr=cur?cur.arr.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp})):monsters;
+  const maxHp=Math.max(...dispArr.map(m=>m.hp),1);
 
-  // Play sound on each watch-mode step change
+  const prevStepRef=useRef(null);
   useEffect(()=>{
-    if(gameMode!=='watch'||!currentStep)return;
-    const prev=prevStepRef.current;
-    prevStepRef.current=currentStep;
-    if(!prev)return;
-    if(currentStep.swapping&&currentStep.swapping.length) SFX.swap();
-    else if(currentStep.comparing&&currentStep.comparing.length) SFX.compare();
-  },[currentStep,gameMode]);
+    if(gameMode!=='watch'||!cur)return;
+    const p=prevStepRef.current; prevStepRef.current=cur; if(!p)return;
+    if(cur.swapping&&cur.swapping.length)SFX.swap();
+    else if(cur.comparing&&cur.comparing.length)SFX.compare();
+  },[cur,gameMode]);
 
-  const cardClass = idx => {
+  const cc=idx=>{
     if(gameMode==='play'){
       if(drag.from===idx)return'dragging';
       if(drag.from!==-1&&drag.to===idx)return'drag-over';
@@ -479,150 +592,145 @@ function SortingGame({levelKey,onBack,onMenu}) {
       if(h&&(h[0]===idx||h[1]===idx))return'hint';
       return'';
     }
-    if(!currentStep)return'';
-    const{comparing,swapping,sorted,pivot,mergeRange}=currentStep;
+    if(!cur)return'';
+    const{comparing,swapping,sorted,pivot,mr}=cur;
     if(sorted&&sorted.includes(idx))return'sorted';
     if(swapping&&swapping.includes(idx))return'swapping';
     if(comparing&&comparing.includes(idx))return'comparing';
     if(pivot===idx)return'pivot';
-    if(mergeRange&&idx>=mergeRange[0]&&idx<=mergeRange[1])return'merging';
+    if(mr&&idx>=mr[0]&&idx<=mr[1])return'merging';
     return'';
   };
 
-  const genSteps=useCallback((mon,algoName)=>{
-    const arr=mon.map(m=>m.hp);
-    if(algoName==='bubble')return generateBubbleSortSteps(arr);
-    if(algoName==='quick') return generateQuickSortSteps(arr);
-    return generateMergeSortSteps(arr);
-  },[]);
+  const genS=useCallback((mon,a)=>{const arr=mon.map(m=>m.hp);if(a==='bubble')return genBubble(arr);if(a==='quick')return genQuick(arr);return genMerge(arr);},[]);
+  const stop=useCallback(()=>{setIsRunning(false);if(stepTimer.current){clearTimeout(stepTimer.current);stepTimer.current=null;}},[]);
+  const resetW=()=>{stop();setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setMsg('');prevStepRef.current=null;};
+  const chAlgo=a=>{SFX.click();stop();setAlgo(a);setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setMsg('');prevStepRef.current=null;};
 
-  const stopWatch=useCallback(()=>{
-    setIsRunning(false);if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
-  },[]);
-
-  const resetWatch=()=>{stopWatch();setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');prevStepRef.current=null;};
-  const handleAlgoChange=a=>{SFX.click();stopWatch();setAlgo(a);setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');prevStepRef.current=null;};
-
-  const handleShuffle=()=>{
-    const m=makeMonsters();SFX.click();stopWatch();
-    setMonsters(m);setInitSnap(m.map(x=>({...x})));setOptInv(countInversions(m.map(x=>x.hp)));
-    setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setPlayerSwaps(0);setCombo(0);setMessage('');setShowResults(false);prevStepRef.current=null;
+  const shuffle=()=>{
+    const m=mkM();SFX.click();stop();setMonsters(m);setInitSnap(m.map(x=>({...x})));setOptInv(countInversions(m.map(x=>x.hp)));
+    setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setPSwaps(0);setCombo(0);setMsg('');setShowRes(false);setElapsed(0);setTimerActive(false);prevStepRef.current=null;
   };
-
-  const handleRetry=()=>{
+  const retry=()=>{
     if(!initSnap)return;SFX.click();
-    setMonsters(initSnap.map(x=>({...x})));setPlayerSwaps(0);setCombo(0);setShowResults(false);setMessage('');
+    setMonsters(initSnap.map(x=>({...x})));setPSwaps(0);setCombo(0);setShowRes(false);setMsg('');setElapsed(0);setTimerActive(false);
   };
+  const runWatch=()=>{SFX.click();let s=steps;if(!s.length){s=genS(monsters,algo);setSteps(s);}setIsRunning(true);setStepIdx(p=>p<0?0:p);};
+  const stepFwd=()=>{let s=steps;if(!s.length){s=genS(monsters,algo);setSteps(s);}setStepIdx(prev=>{const next=Math.min(prev+1,s.length-1);if(s[next]){if(s[next].swapping&&s[next].swapping.length)setSwaps(c=>c+1);if(s[next].comparing&&s[next].comparing.length)setCmps(c=>c+1);}return next;});};
+  const stepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
 
-  const handleRun=()=>{
-    SFX.click();let s=steps;if(!s.length){s=genSteps(monsters,algo);setSteps(s);}
-    setIsRunning(true);setStepIdx(p=>p<0?0:p);
-  };
-
-  const handleStepFwd=()=>{
-    let s=steps;if(!s.length){s=genSteps(monsters,algo);setSteps(s);}
-    setStepIdx(prev=>{
-      const next=Math.min(prev+1,s.length-1);
-      if(s[next]){if(s[next].swapping&&s[next].swapping.length)setSwapCount(c=>c+1);if(s[next].comparing&&s[next].comparing.length)setCmpCount(c=>c+1);}
-      return next;
-    });
-  };
-  const handleStepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
-
-  const handleDragStart=idx=>{if(showResults||isSorted(monsters.map(m=>m.hp)))return;setDrag({from:idx,to:-1});};
-  const handleDragEnter=idx=>{if(drag.from===-1||drag.from===idx)return;setDrag(d=>({...d,to:idx}));};
+  const handleDS=idx=>{if(showRes||isSorted(monsters.map(m=>m.hp)))return;setDrag({from:idx,to:-1});};
+  const handleDE=idx=>{if(drag.from===-1||drag.from===idx)return;setDrag(d=>({...d,to:idx}));};
 
   const commitSwap=useCallback(()=>{
-    const{monsters:m,playerSwaps:ps,optInv:oi,drag:d}=stateRef.current;
+    const{monsters:m,pSwaps:ps,optInv:oi,drag:d,combo:cb,elapsed:el}=stRef.current;
     setDrag({from:-1,to:-1});
     if(d.from===-1||d.to===-1||d.from===d.to)return;
     const hint=getBubbleHint(m.map(x=>x.hp));
     const isOpt=hint&&((d.from===hint[0]&&d.to===hint[1])||(d.from===hint[1]&&d.to===hint[0]));
     const nm=[...m];[nm[d.from],nm[d.to]]=[nm[d.to],nm[d.from]];
     setMonsters(nm);
-    const ns=ps+1;setPlayerSwaps(ns);
-    const newCombo=isOpt?stateRef.current.combo+1:0;
-    setCombo(newCombo);
-    SFX.swap();
-    if(isOpt&&newCombo>1) SFX.combo(newCombo);
-    if(isSorted(nm.map(x=>x.hp))){SFX.sorted();setResultStars(calcStars(ns,oi));setTimeout(()=>setShowResults(true),600);}
+    const ns=ps+1;setPSwaps(ns);
+    const nc=isOpt?cb+1:0;setCombo(nc);
+    SFX.swap();if(isOpt&&nc>1)SFX.combo(nc);
+    if(ns===1&&timerOn){setTimerActive(true);}
+    if(isSorted(nm.map(x=>x.hp))){
+      setTimerActive(false);
+      const stars=calcStars(ns,oi);
+      setResStars(stars);
+      if(!multiPlayers)saveScore(levelKey,stars,el);
+      SFX.sorted();setTimeout(()=>setShowRes(true),600);
+    }
+  },[timerOn,levelKey,multiPlayers]);
+
+  // Touch support for monsters
+  const touchPosToIdx=useCallback(e=>{
+    const t=e.touches[0]||e.changedTouches[0];
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    if(el&&el.dataset.midx!==undefined)return parseInt(el.dataset.midx);
+    return-1;
   },[]);
 
-  useEffect(()=>{
-    const up=()=>{if(stateRef.current.drag.from!==-1)commitSwap();};
-    window.addEventListener('mouseup',up);return()=>window.removeEventListener('mouseup',up);
-  },[commitSwap]);
+  useEffect(()=>{const up=()=>{if(stRef.current.drag.from!==-1)commitSwap();};window.addEventListener('mouseup',up);return()=>window.removeEventListener('mouseup',up);},[commitSwap]);
 
-  // auto-advance watch mode
   useEffect(()=>{
     if(gameMode!=='watch'||!isRunning||!steps.length)return;
-    if(stepIdx>=steps.length-1){setIsRunning(false);setMessage('SORTED! Algorithm complete  ✓');SFX.sorted();return;}
-    timerRef.current=setTimeout(()=>{
-      setStepIdx(prev=>{
-        const next=prev+1;
-        if(steps[next]){if(steps[next].swapping&&steps[next].swapping.length)setSwapCount(c=>c+1);if(steps[next].comparing&&steps[next].comparing.length)setCmpCount(c=>c+1);}
-        return next;
-      });
-    },speed);
-    return()=>clearTimeout(timerRef.current);
+    if(stepIdx>=steps.length-1){setIsRunning(false);setMsg('SORTED! ✓');SFX.sorted();return;}
+    stepTimer.current=setTimeout(()=>{setStepIdx(prev=>{const next=prev+1;if(steps[next]){if(steps[next].swapping&&steps[next].swapping.length)setSwaps(c=>c+1);if(steps[next].comparing&&steps[next].comparing.length)setCmps(c=>c+1);}return next;});},speed);
+    return()=>clearTimeout(stepTimer.current);
   },[gameMode,isRunning,stepIdx,steps,speed]);
 
-  const handleModeSwitch=m=>{
-    SFX.click();stopWatch();setGameMode(m);setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');prevStepRef.current=null;
-    if(m==='play'&&initSnap){setMonsters(initSnap.map(x=>({...x})));setPlayerSwaps(0);setCombo(0);setShowResults(false);}
-  };
+  const switchMode=m=>{SFX.click();stop();setGameMode(m);setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setMsg('');prevStepRef.current=null;if(m==='play'&&initSnap){setMonsters(initSnap.map(x=>({...x})));setPSwaps(0);setCombo(0);setShowRes(false);setElapsed(0);setTimerActive(false);}};
 
-  const pseudo=PSEUDOCODES[algo],complexity=COMPLEXITIES[algo],activeLine=currentStep?currentStep.pseudoLine:-1;
+  const pseudo=PSEUDO[algo],compl=COMPL[algo],actLine=cur?cur.pl:-1;
   const hint=gameMode==='play'&&showHint?getBubbleHint(monsters.map(m=>m.hp)):null;
   const sorted=isSorted(monsters.map(m=>m.hp));
 
-  return (
+  const mpPlayerName=multiPlayers?multiPlayers[multiPlayerIdx]:null;
+  const mpNextName=multiPlayers&&multiPlayerIdx<multiPlayers.length-1?multiPlayers[multiPlayerIdx+1]:null;
+  const mpColor=multiPlayers?PCOLORS[multiPlayerIdx]:'var(--green)';
+  const mpEmoji=multiPlayers?PEMOJIS[multiPlayerIdx]:'';
+  const handleNext=()=>{setShowRes(false);onPlayerDone(resStars,pSwaps,elapsed,timerOn);};
+
+  return(
     <div className="game-container">
-      {showResults&&<ResultsOverlay stars={resultStars} playerSwaps={playerSwaps} optimalSwaps={optInv} onRetry={handleRetry} onMenu={onMenu}/>}
+      {showRes&&<ResultsOverlay stars={resStars} playerSwaps={pSwaps} optSwaps={optInv} timeS={elapsed} timerOn={timerOn}
+        onRetry={retry} onMenu={onMenu}
+        playerName={mpPlayerName} nextPlayerName={mpNextName}
+        onNext={multiPlayers?handleNext:null}
+      />}
       <div className="game-header">
         <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
         <span className="section-title">👾 MONSTER SORTER</span>
-        <span style={{fontSize:8,color:lv.color,fontFamily:"'Press Start 2P',cursive"}}>{lv.label}</span>
-        <MuteBtn/>
+        <span style={{fontSize:7,color:lv.color,fontFamily:"'Press Start 2P',cursive"}}>{lv.label}</span>
+        {multiPlayers&&(
+          <div className="player-turn-badge" style={{borderColor:mpColor,color:mpColor}}>
+            {mpEmoji} {mpPlayerName} <span style={{color:'var(--tx3)'}}>• {multiPlayerIdx+1}/{multiPlayers.length}</span>
+          </div>
+        )}
+        <HeaderRight/>
       </div>
 
       <div className="mode-tabs">
-        <button className={`mode-tab ${gameMode==='play'?'active':''}`} onClick={()=>handleModeSwitch('play')}>🎮 PLAY</button>
-        <button className={`mode-tab ${gameMode==='watch'?'active':''}`} onClick={()=>handleModeSwitch('watch')}>👁 WATCH</button>
+        <button className={`mode-tab${gameMode==='play'?' active':''}`} onClick={()=>switchMode('play')}>🎮 PLAY</button>
+        <button className={`mode-tab${gameMode==='watch'?' active':''}`} onClick={()=>switchMode('watch')}>👁 WATCH</button>
       </div>
 
       <div className="sort-layout">
         <div>
           {gameMode==='watch'&&(
-            <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
-              {[['bubble','🫧 BUBBLE'],['quick','⚡ QUICK'],['merge','🔀 MERGE']].map(([a,label])=>(
-                <button key={a} className={`algo-btn ${algo===a?'active':''}`} onClick={()=>handleAlgoChange(a)}>{label}</button>
+            <div style={{display:'flex',gap:7,marginBottom:10,flexWrap:'wrap'}}>
+              {[['bubble','🫧 BUBBLE'],['quick','⚡ QUICK'],['merge','🔀 MERGE']].map(([a,lb])=>(
+                <button key={a} className={`algo-btn${algo===a?' active':''}`} onClick={()=>chAlgo(a)}>{lb}</button>
               ))}
             </div>
           )}
 
           <div className="monster-arena">
             {gameMode==='play'&&(
-              <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8,flexWrap:'wrap'}}>
-                <button className={`algo-btn ${showHint?'active':''}`} onClick={()=>{SFX.click();setShowHint(h=>!h);}}>💡 HINT {showHint?'ON':'OFF'}</button>
-                {hint&&<span style={{fontSize:9,color:'#ffdd00',fontFamily:"'Press Start 2P',cursive"}}>Swap the glowing pair!</span>}
-                {sorted&&<span style={{fontSize:9,color:'#00ff88',fontFamily:"'Press Start 2P',cursive"}}>SORTED ✓</span>}
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+                <button className={`algo-btn${showHint?' active':''}`} onClick={()=>{SFX.click();setShowHint(h=>!h);}}>💡 HINT {showHint?'ON':'OFF'}</button>
+                <button className={`algo-btn${timerOn?' active':''}`} onClick={()=>{SFX.click();setTimerOn(t=>{if(!t)setElapsed(0);return!t;});}}>⏱ TIMER {timerOn?'ON':'OFF'}</button>
+                {timerOn&&<span style={{fontFamily:"'Press Start 2P',cursive",fontSize:9,color:timerActive?'#ffdd00':'var(--tx3)'}}>{fmtTime(elapsed)}</span>}
+                {hint&&!sorted&&<span style={{fontSize:8,color:'#ffdd00',fontFamily:"'Press Start 2P',cursive"}}>Swap the glow!</span>}
+                {sorted&&<span style={{fontSize:8,color:'var(--green)',fontFamily:"'Press Start 2P',cursive"}}>SORTED ✓</span>}
               </div>
             )}
 
             {gameMode==='play'&&combo>1&&(
-              <div className="combo-row">
-                <span className="combo-num" key={combo}>x{combo}</span>
-                <span className="combo-label">COMBO!</span>
-              </div>
+              <div className="combo-row"><span className="combo-num" key={combo}>x{combo}</span><span className="combo-label">COMBO!</span></div>
             )}
 
             <div className="monster-row" onMouseLeave={()=>drag.from!==-1&&setDrag(d=>({...d,to:-1}))}>
-              {displayArr.map((m,idx)=>(
-                <div key={idx} className={`monster-card ${cardClass(idx)}`}
-                  style={{height:`${100+Math.round((m.hp/maxHp)*80)}px`}}
-                  onMouseDown={()=>gameMode==='play'&&handleDragStart(idx)}
-                  onMouseEnter={()=>gameMode==='play'&&handleDragEnter(idx)}
+              {dispArr.map((m,idx)=>(
+                <div key={idx} className={`monster-card ${cc(idx)}`}
+                  style={{height:`${95+Math.round((m.hp/maxHp)*80)}px`}}
+                  data-midx={idx}
+                  onMouseDown={()=>gameMode==='play'&&handleDS(idx)}
+                  onMouseEnter={()=>gameMode==='play'&&handleDE(idx)}
+                  onTouchStart={e=>{e.preventDefault();if(gameMode==='play')handleDS(idx);}}
+                  onTouchMove={e=>{e.preventDefault();if(gameMode==='play'){const i=touchPosToIdx(e);if(i>=0)handleDE(i);}}}
+                  onTouchEnd={e=>{e.preventDefault();if(gameMode==='play')commitSwap();}}
                 >
                   <div className="monster-emoji">{m.emoji}</div>
                   <div className="monster-name">{m.name}</div>
@@ -632,46 +740,37 @@ function SortingGame({levelKey,onBack,onMenu}) {
               ))}
             </div>
 
-            {message&&<div className={`message ${message.includes('SORTED')?'success':'info'}`}>{message}</div>}
+            {msg&&<div className={`message${msg.includes('SORTED')?' success':' info'}`}>{msg}</div>}
 
             {gameMode==='watch'?(
               <>
                 <div className="controls-bar">
-                  <button className="btn btn-green" onClick={handleRun}     disabled={isRunning}>▶ RUN</button>
-                  <button className="btn btn-gray"  onClick={stopWatch}     disabled={!isRunning}>⏸ PAUSE</button>
-                  <button className="btn btn-gray"  onClick={handleStepBck} disabled={isRunning||stepIdx<=0}>◀ STEP</button>
-                  <button className="btn btn-gray"  onClick={handleStepFwd} disabled={isRunning}>STEP ▶</button>
-                  <button className="btn btn-cyan"  onClick={handleShuffle}>🔀 SHUFFLE</button>
-                  <button className="btn btn-red"   onClick={resetWatch}>↺ RESET</button>
-                  <div className="speed-control">
-                    <span>FAST</span>
-                    <input type="range" min={40} max={800} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/>
-                    <span>SLOW</span>
-                  </div>
+                  <button className="btn btn-green" onClick={runWatch}   disabled={isRunning}>▶ RUN</button>
+                  <button className="btn btn-gray"  onClick={stop}       disabled={!isRunning}>⏸</button>
+                  <button className="btn btn-gray"  onClick={stepBck}    disabled={isRunning||stepIdx<=0}>◀</button>
+                  <button className="btn btn-gray"  onClick={stepFwd}    disabled={isRunning}>▶</button>
+                  <button className="btn btn-cyan"  onClick={shuffle}>🔀</button>
+                  <button className="btn btn-red"   onClick={resetW}>↺</button>
+                  <div className="speed-control"><span>FAST</span><input type="range" min={40} max={800} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/><span>SLOW</span></div>
                 </div>
                 <div className="stats-bar">
-                  <div className="stat-item"><div className="stat-label">CMP</div><div className="stat-value" style={{color:'#3377ff'}}>{cmpCount}</div></div>
-                  <div className="stat-item"><div className="stat-label">SWAP</div><div className="stat-value" style={{color:'#ff3355'}}>{swapCount}</div></div>
-                  <div className="stat-item"><div className="stat-label">STEP</div><div className="stat-value" style={{color:'#ffdd00',fontSize:14}}>{stepIdx<0?0:stepIdx}<span style={{fontSize:8,color:'#333'}}>/{steps.length}</span></div></div>
+                  <div className="stat-item"><div className="stat-label">CMP</div><div className="stat-value" style={{color:'#3377ff'}}>{cmps}</div></div>
+                  <div className="stat-item"><div className="stat-label">SWAP</div><div className="stat-value" style={{color:'#ff3355'}}>{swaps}</div></div>
+                  <div className="stat-item"><div className="stat-label">STEP</div><div className="stat-value" style={{color:'#ffdd00',fontSize:13}}>{stepIdx<0?0:stepIdx}<span style={{fontSize:7,color:'var(--tx4)'}}>/{steps.length}</span></div></div>
                 </div>
               </>
             ):(
               <div className="controls-bar">
-                <button className="btn btn-cyan" onClick={handleShuffle}>🔀 NEW MONSTERS</button>
-                <button className="btn btn-gray" onClick={handleRetry}>↺ RETRY</button>
+                <button className="btn btn-cyan"   onClick={shuffle}>🔀 NEW</button>
+                <button className="btn btn-gray"   onClick={retry}>↺ RETRY</button>
                 <div className="stats-bar" style={{marginLeft:4}}>
-                  <div className="stat-item"><div className="stat-label">SWAPS</div><div className="stat-value" style={{color:'#ff3355'}}>{playerSwaps}</div></div>
+                  <div className="stat-item"><div className="stat-label">SWAPS</div><div className="stat-value" style={{color:'#ff3355'}}>{pSwaps}</div></div>
                   <div className="stat-item"><div className="stat-label">PAR</div><div className="stat-value" style={{color:'#ffdd00'}}>{optInv}</div></div>
                   <div className="stat-item"><div className="stat-label">COMBO</div><div className="stat-value" style={{color:'#ff00cc'}}>{combo}</div></div>
                 </div>
               </div>
             )}
           </div>
-          {gameMode==='play'&&!sorted&&(
-            <div style={{marginTop:8,fontSize:11,color:'#333',fontFamily:'Courier New'}}>
-              💡 Drag monsters to sort low → high HP. Yellow glow = optimal next swap. Match hints to build COMBO!
-            </div>
-          )}
         </div>
 
         <div className="side-panel">
@@ -679,26 +778,23 @@ function SortingGame({levelKey,onBack,onMenu}) {
             <>
               <div className="panel-box">
                 <div className="panel-title">📄 PSEUDOCODE</div>
-                <div className="pseudo-code">
-                  {pseudo.map((line,i)=><div key={i} className={`pseudo-line indent${line.indent} ${activeLine===i?'active':''}`}>{line.text}</div>)}
-                </div>
+                <div className="pseudo-code">{pseudo.map((l,i)=><div key={i} className={`pseudo-line indent${l.i}${actLine===i?' active':''}`}>{l.t}</div>)}</div>
               </div>
               <div className="panel-box">
                 <div className="panel-title">⚡ COMPLEXITY</div>
-                <div style={{fontSize:12,color:'#888',lineHeight:2}}>
-                  <div>Time:  <span style={{color:'#ddd'}}>{complexity.time}</span></div>
-                  <div>Space: <span style={{color:'#ddd'}}>{complexity.space}</span></div>
+                <div style={{fontSize:11,color:'var(--tx2)',lineHeight:2}}>
+                  <div>Time: <span style={{color:'var(--tx)'}}>{compl.time}</span></div>
+                  <div>Space: <span style={{color:'var(--tx)'}}>{compl.space}</span></div>
                 </div>
-                <span className={`complexity-badge ${complexity.badge}`}>{complexity.time}</span>
+                <span className={`complexity-badge ${compl.b}`}>{compl.time}</span>
               </div>
               <div className="panel-box">
                 <div className="panel-title">🎨 LEGEND</div>
-                <div style={{fontSize:11,lineHeight:2.2}}>
+                <div style={{fontSize:10,lineHeight:2.1}}>
                   <div><span style={{color:'#3377ff'}}>■</span> Comparing</div>
                   <div><span style={{color:'#ff3344'}}>■</span> Swapping</div>
-                  <div><span style={{color:'#ffdd00'}}>■</span> Pivot</div>
-                  <div><span style={{color:'#ff7700'}}>■</span> Merge range</div>
-                  <div><span style={{color:'#00ff88'}}>■</span> Sorted</div>
+                  <div><span style={{color:'#ffdd00'}}>■</span> Pivot / Merge</div>
+                  <div><span style={{color:'var(--green)'}}>■</span> Sorted</div>
                 </div>
               </div>
             </>
@@ -706,34 +802,31 @@ function SortingGame({levelKey,onBack,onMenu}) {
             <>
               <div className="panel-box">
                 <div className="panel-title">🎯 HOW TO PLAY</div>
-                <div style={{fontSize:11,color:'#666',lineHeight:2.4}}>
-                  <div>🖱 <span style={{color:'#aaa'}}>Drag</span> to swap monsters</div>
-                  <div>💡 <span style={{color:'#ffdd00'}}>Yellow glow</span> = best move</div>
-                  <div>🔥 Follow hints for <span style={{color:'#ff00cc'}}>COMBO!</span></div>
+                <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.3}}>
+                  <div>🖱 Drag to swap monsters</div>
+                  <div>💡 Yellow glow = best move</div>
+                  <div>🔥 Follow hints → COMBO!</div>
+                  <div>⏱ Timer is optional</div>
                   <div>⭐ Beat PAR for 3 stars</div>
-                  <div>👁 WATCH tab = auto sort</div>
                 </div>
               </div>
               <div className="panel-box">
                 <div className="panel-title">💡 NEXT HINT</div>
-                {hint?(
-                  <div style={{fontSize:11,color:'#777',lineHeight:2}}>
-                    <div style={{color:'#555',marginBottom:4}}>Swap these two:</div>
-                    <div style={{color:'#ffdd00'}}>{monsters[hint[0]]?.emoji} <span style={{color:'#ddd'}}>{monsters[hint[0]]?.hp}</span> HP</div>
-                    <div style={{color:'#444',fontSize:10}}>↕</div>
-                    <div style={{color:'#ffdd00'}}>{monsters[hint[1]]?.emoji} <span style={{color:'#ddd'}}>{monsters[hint[1]]?.hp}</span> HP</div>
-                  </div>
-                ):(
-                  <div style={{color:'#00ff88',fontSize:11}}>Already sorted! ✓</div>
-                )}
+                {hint?(<div style={{fontSize:10,color:'var(--tx2)',lineHeight:2}}>
+                  <div style={{color:'var(--tx3)',marginBottom:4}}>Swap these:</div>
+                  <div style={{color:'#ffdd00'}}>{monsters[hint[0]]?.emoji} {monsters[hint[0]]?.hp} HP</div>
+                  <div style={{color:'var(--tx4)'}}>↕</div>
+                  <div style={{color:'#ffdd00'}}>{monsters[hint[1]]?.emoji} {monsters[hint[1]]?.hp} HP</div>
+                </div>):<div style={{color:'var(--green)',fontSize:10}}>Sorted! ✓</div>}
               </div>
               <div className="panel-box">
                 <div className="panel-title">📊 SCORE</div>
-                <div style={{fontSize:11,color:'#777',lineHeight:2.2}}>
-                  <div>Swaps made: <span style={{color:'#ddd'}}>{playerSwaps}</span></div>
-                  <div>Par (optimal): <span style={{color:'#ffdd00'}}>{optInv}</span></div>
+                <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.1}}>
+                  <div>Swaps: <span style={{color:'var(--tx)'}}>{pSwaps}</span></div>
+                  <div>Par: <span style={{color:'#ffdd00'}}>{optInv}</span></div>
                   <div>Combo: <span style={{color:'#ff00cc'}}>{combo>0?`x${combo}`:'—'}</span></div>
-                  <div>Level: <span style={{color:lv.color}}>{lv.label}</span></div>
+                  {timerOn&&<div>Time: <span style={{color:timerActive?'#ffdd00':'var(--tx)'}}>{fmtTime(elapsed)}</span></div>}
+                  {getBest(levelKey)&&<div>Best: <span style={{color:'var(--green)'}}>{getBest(levelKey).stars}⭐{timerOn&&getBest(levelKey).time?' '+fmtTime(getBest(levelKey).time):''}</span></div>}
                 </div>
               </div>
             </>
@@ -745,111 +838,80 @@ function SortingGame({levelKey,onBack,onMenu}) {
 }
 
 // ── PATHFINDING GAME ──────────────────────────────────────────────────────
-function PathfindingGame({onBack}) {
-  const [grid,      setGrid]      = useState(generateMaze);
-  const [start,     setStart]     = useState([1,1]);
-  const [end,       setEnd]       = useState([ROWS-2,COLS-2]);
-  const [algo,      setAlgo]      = useState('astar');
-  const [tool,      setTool]      = useState('wall');
-  const [isRunning, setIsRunning] = useState(false);
-  const [speed,     setSpeed]     = useState(25);
-  const [frames,    setFrames]    = useState([]);
-  const [frameIdx,  setFrameIdx]  = useState(-1);
-  const [result,    setResult]    = useState(null);
-  const [mouseDown, setMouseDown] = useState(false);
-  const [message,   setMessage]   = useState('');
-  const timerRef = useRef(null);
+function PathfindingGame({onBack}){
+  const[grid,setGrid]=useState(genMaze);
+  const[start,setStart]=useState([1,1]);
+  const[end,setEnd]=useState([ROWS-2,COLS-2]);
+  const[algo,setAlgo]=useState('astar');
+  const[tool,setTool]=useState('wall');
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(25);
+  const[frames,setFrames]=useState([]);
+  const[frameIdx,setFrameIdx]=useState(-1);
+  const[result,setResult]=useState(null);
+  const[mouseDown,setMouseDown]=useState(false);
+  const[msg,setMsg]=useState('');
+  const timer=useRef(null);
 
   const frame=frameIdx>=0&&frameIdx<frames.length?frames[frameIdx]:null;
-
-  const cellClass=(r,c)=>{
-    if(r===start[0]&&c===start[1])return'cell-start';
-    if(r===end[0]  &&c===end[1])  return'cell-end';
-    if(grid[r][c].wall)           return'cell-wall';
-    if(frame){
-      const key=`${r},${c}`;
-      if(frame.path&&frame.path.some(([pr,pc])=>pr===r&&pc===c))return'cell-path';
-      if(frame.current&&frame.current[0]===r&&frame.current[1]===c)return'cell-current';
-      if(frame.visited&&frame.visited.has(key))return'cell-closed';
-      if(frame.open   &&frame.open.has(key))   return'cell-open';
-    }
+  const cc=(r,c)=>{
+    if(r===start[0]&&c===start[1])return'cell-start';if(r===end[0]&&c===end[1])return'cell-end';if(grid[r][c].wall)return'cell-wall';
+    if(frame){const k=`${r},${c}`;if(frame.path&&frame.path.some(([pr,pc])=>pr===r&&pc===c))return'cell-path';if(frame.current&&frame.current[0]===r&&frame.current[1]===c)return'cell-current';if(frame.visited&&frame.visited.has(k))return'cell-closed';if(frame.open&&frame.open.has(k))return'cell-open';}
     return'cell-empty';
   };
-
-  const resetViz=()=>{
-    setIsRunning(false);if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
-    setFrames([]);setFrameIdx(-1);setResult(null);setMessage('');
-  };
-
+  const resetViz=()=>{setIsRunning(false);if(timer.current){clearTimeout(timer.current);timer.current=null;}setFrames([]);setFrameIdx(-1);setResult(null);setMsg('');};
   const interact=(r,c)=>{
-    if(isRunning)return;
-    if(tool==='start'){setStart([r,c]);resetViz();return;}
-    if(tool==='end')  {setEnd([r,c]);  resetViz();return;}
-    if(r===start[0]&&c===start[1])return;
-    if(r===end[0]  &&c===end[1])  return;
-    const g=grid.map(row=>row.map(cell=>({...cell})));
-    const wasWall=g[r][c].wall; g[r][c].wall=(tool==='wall');
-    if(tool==='wall'&&!wasWall) SFX.wall();
-    setGrid(g);resetViz();
+    if(isRunning)return;if(tool==='start'){setStart([r,c]);resetViz();return;}if(tool==='end'){setEnd([r,c]);resetViz();return;}
+    if(r===start[0]&&c===start[1])return;if(r===end[0]&&c===end[1])return;
+    const g=grid.map(row=>row.map(cell=>({...cell})));const was=g[r][c].wall;g[r][c].wall=(tool==='wall');if(tool==='wall'&&!was)SFX.wall();setGrid(g);resetViz();
   };
+  const run=()=>{SFX.click();resetViz();const{frames:f,path,found}=runPath(grid,start,end,algo==='astar');setFrames(f);setResult({path,found});setFrameIdx(0);setIsRunning(true);};
+  const newMaze=()=>{SFX.click();resetViz();setGrid(genMaze());setStart([1,1]);setEnd([ROWS-2,COLS-2]);};
 
-  const handleRun=()=>{
-    SFX.click();resetViz();
-    const{frames:f,path,found}=runPathfinding(grid,start,end,algo==='astar');
-    setFrames(f);setResult({path,found});setFrameIdx(0);setIsRunning(true);
-  };
-
-  const handleNewMaze=()=>{SFX.click();resetViz();setGrid(generateMaze());setStart([1,1]);setEnd([ROWS-2,COLS-2]);};
+  // Touch for grid
+  const touchCell=e=>{const t=e.touches[0]||e.changedTouches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el.dataset.rc){const[r,c]=el.dataset.rc.split(',').map(Number);interact(r,c);}};
 
   useEffect(()=>{
     if(!isRunning||!frames.length)return;
-    if(frameIdx>=frames.length-1){
-      setIsRunning(false);
-      const found=result&&result.found;
-      setMessage(found?'PATH FOUND!  ✓':'NO PATH EXISTS  ⛔');
-      if(found) SFX.pathFound(); else SFX.noPath();
-      return;
-    }
-    timerRef.current=setTimeout(()=>setFrameIdx(p=>p+1),speed);
-    return()=>clearTimeout(timerRef.current);
+    if(frameIdx>=frames.length-1){setIsRunning(false);const found=result?.found;setMsg(found?'PATH FOUND! ✓':'NO PATH EXISTS ⛔');if(found)SFX.pathFound();else SFX.noPath();return;}
+    timer.current=setTimeout(()=>setFrameIdx(p=>p+1),speed);return()=>clearTimeout(timer.current);
   },[isRunning,frameIdx,frames,speed,result]);
 
-  const visitedCount=frame?.visited?.size??0;
-  const queueSize   =frame?.queue?.length??0;
-  const pathLen     =(result?.found&&frameIdx>=frames.length-1)?result.path.length:0;
+  const vc=frame?.visited?.size??0,qs=frame?.queue?.length??0,pl=(result?.found&&frameIdx>=frames.length-1)?result.path.length:0;
 
-  return (
+  return(
     <div className="game-container">
       <div className="game-header">
         <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
         <span className="section-title">🗺 DUNGEON ESCAPE</span>
-        <MuteBtn/>
+        <HeaderRight/>
       </div>
       <div className="path-layout">
         <div>
-          <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
-            {[['astar','⭐ A*'],['dijkstra','🔵 DIJKSTRA']].map(([a,label])=>(
-              <button key={a} className={`algo-btn ${algo===a?'active':''}`} onClick={()=>{SFX.click();setAlgo(a);resetViz();}}>{label}</button>
+          <div style={{display:'flex',gap:7,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
+            {[['astar','⭐ A*'],['dijkstra','🔵 DIJKSTRA']].map(([a,lb])=>(
+              <button key={a} className={`algo-btn${algo===a?' active':''}`} onClick={()=>{SFX.click();setAlgo(a);resetViz();}}>{lb}</button>
             ))}
-            <button className="btn btn-green" onClick={handleRun}              disabled={isRunning}>▶ RUN</button>
-            <button className="btn btn-gray"  onClick={()=>{SFX.click();setIsRunning(false);}} disabled={!isRunning}>⏸ PAUSE</button>
-            <button className="btn btn-cyan"  onClick={handleNewMaze}>🎲 NEW MAZE</button>
-            <button className="btn btn-red"   onClick={()=>{SFX.click();resetViz();}}>↺ RESET</button>
+            <button className="btn btn-green" onClick={run} disabled={isRunning}>▶ RUN</button>
+            <button className="btn btn-gray"  onClick={()=>{SFX.click();setIsRunning(false);}} disabled={!isRunning}>⏸</button>
+            <button className="btn btn-cyan"  onClick={newMaze}>🎲 NEW</button>
+            <button className="btn btn-red"   onClick={()=>{SFX.click();resetViz();}}>↺</button>
           </div>
-
           <div className="tool-select">
-            <span style={{fontSize:9,color:'#555',alignSelf:'center',fontFamily:"'Press Start 2P',cursive"}}>TOOL:</span>
-            {[['wall','🧱 WALL'],['erase','🧹 ERASE'],['start','🟢 START'],['end','🔴 END']].map(([t,label])=>(
-              <button key={t} className={`tool-btn ${tool===t?'active':''}`} onClick={()=>{SFX.click();setTool(t);}}>{label}</button>
+            <span style={{fontSize:8,color:'var(--tx3)',alignSelf:'center',fontFamily:"'Press Start 2P',cursive"}}>TOOL:</span>
+            {[['wall','🧱'],['erase','🧹'],['start','🟢'],['end','🔴']].map(([t,lb])=>(
+              <button key={t} className={`tool-btn${tool===t?' active':''}`} onClick={()=>{SFX.click();setTool(t);}}>{lb} {t.toUpperCase()}</button>
             ))}
           </div>
-
-          {message&&<div className={`message ${message.includes('FOUND')?'success':message.includes('NO')?'error':'info'}`}>{message}</div>}
-
+          {msg&&<div className={`message${msg.includes('FOUND')?' success':msg.includes('NO')?' error':' info'}`}>{msg}</div>}
           <div className="dungeon-area">
-            <div className="dungeon-grid" style={{gridTemplateColumns:`repeat(${COLS},26px)`}} onMouseLeave={()=>setMouseDown(false)}>
+            <div className="dungeon-grid" style={{gridTemplateColumns:`repeat(${COLS},25px)`}} onMouseLeave={()=>setMouseDown(false)}
+              onTouchStart={e=>{e.preventDefault();setMouseDown(true);touchCell(e);}}
+              onTouchMove={e=>{e.preventDefault();if(mouseDown)touchCell(e);}}
+              onTouchEnd={()=>setMouseDown(false)}
+            >
               {grid.map((row,r)=>row.map((_,c)=>(
-                <div key={`${r}-${c}`} className={`grid-cell ${cellClass(r,c)}`}
+                <div key={`${r}-${c}`} className={`grid-cell ${cc(r,c)}`} data-rc={`${r},${c}`}
                   onMouseDown={()=>{setMouseDown(true);interact(r,c);}}
                   onMouseUp={()=>setMouseDown(false)}
                   onMouseEnter={()=>{if(mouseDown)interact(r,c);}}
@@ -857,72 +919,328 @@ function PathfindingGame({onBack}) {
               )))}
             </div>
             <div className="legend">
-              {[['#00ff88','Start'],['#ff3355','End'],['#1133cc99','Open'],['#1a1a36','Visited'],['#ffdd00','Current'],['#00ffff','Path'],['#1e1e1e','Wall']].map(([color,label])=>(
-                <div key={label} className="legend-item">
-                  <div className="legend-dot" style={{background:color,border:'1px solid #333'}}/>
-                  <span>{label}</span>
-                </div>
+              {[['#00ff88','Start'],['#ff3355','End'],['#1133cc99','Open'],['#1a1a3688','Visited'],['#ffdd00','Current'],['var(--cyan)','Path'],['var(--bd)','Wall']].map(([color,label])=>(
+                <div key={label} className="legend-item"><div className="legend-dot" style={{background:color,border:'1px solid var(--bd2)'}}/><span>{label}</span></div>
               ))}
             </div>
-            <div className="stats-bar" style={{marginTop:12}}>
-              <div className="stat-item"><div className="stat-label">VISITED</div><div className="stat-value" style={{color:'#3377ff'}}>{visitedCount}</div></div>
-              <div className="stat-item"><div className="stat-label">QUEUE</div><div className="stat-value" style={{color:'#ff00cc'}}>{queueSize}</div></div>
-              <div className="stat-item"><div className="stat-label">PATH</div><div className="stat-value" style={{color:'#00ff88'}}>{pathLen||'—'}</div></div>
-              <div className="stat-item"><div className="stat-label">FRAME</div><div className="stat-value" style={{color:'#ffdd00',fontSize:13}}>{frameIdx<0?0:frameIdx}<span style={{fontSize:8,color:'#333'}}>/{frames.length}</span></div></div>
+            <div className="stats-bar" style={{marginTop:10}}>
+              <div className="stat-item"><div className="stat-label">VISITED</div><div className="stat-value" style={{color:'#3377ff'}}>{vc}</div></div>
+              <div className="stat-item"><div className="stat-label">QUEUE</div><div className="stat-value" style={{color:'#ff00cc'}}>{qs}</div></div>
+              <div className="stat-item"><div className="stat-label">PATH</div><div className="stat-value" style={{color:'var(--green)'}}>{pl||'—'}</div></div>
+              <div className="stat-item"><div className="stat-label">FRAME</div><div className="stat-value" style={{color:'#ffdd00',fontSize:12}}>{frameIdx<0?0:frameIdx}<span style={{fontSize:7,color:'var(--tx4)'}}>/{frames.length}</span></div></div>
             </div>
-            <div className="speed-control" style={{marginTop:12}}>
-              <span>FAST</span>
-              <input type="range" min={5} max={200} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)',width:140}}/>
-              <span>SLOW</span>
-            </div>
+            <div className="speed-control" style={{marginTop:10}}><span>FAST</span><input type="range" min={5} max={200} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)',width:130}}/><span>SLOW</span></div>
           </div>
         </div>
-
         <div className="side-panel">
           <div className="panel-box">
             <div className="panel-title">📋 ALGORITHM</div>
-            <div style={{fontSize:11,color:'#777',lineHeight:2}}>
-              {algo==='astar'?(
-                <>
-                  <div style={{color:'#00ff88',marginBottom:6,fontFamily:"'Press Start 2P',cursive",fontSize:9}}>A* Search</div>
-                  <div>f(n) = g(n) + h(n)</div>
-                  <div style={{color:'#555'}}>g = cost from start</div>
-                  <div style={{color:'#555'}}>h = Manhattan distance</div>
-                  <div style={{marginTop:10,color:'#ffdd00'}}>Finds optimal path</div>
-                  <div style={{color:'#555'}}>efficiently via heuristic</div>
-                </>
-              ):(
-                <>
-                  <div style={{color:'#00ffff',marginBottom:6,fontFamily:"'Press Start 2P',cursive",fontSize:9}}>Dijkstra</div>
-                  <div>f(n) = g(n) + 0</div>
-                  <div style={{color:'#555'}}>g = cost from start</div>
-                  <div style={{color:'#555'}}>h = 0 (no heuristic)</div>
-                  <div style={{marginTop:10,color:'#ffdd00'}}>Explores uniformly</div>
-                  <div style={{color:'#555'}}>slower than A*</div>
-                </>
-              )}
+            <div style={{fontSize:10,color:'var(--tx2)',lineHeight:2}}>
+              {algo==='astar'?(<><div style={{color:'var(--green)',marginBottom:5,fontFamily:"'Press Start 2P',cursive",fontSize:8}}>A* Search</div><div>f(n) = g(n) + h(n)</div><div style={{color:'var(--tx3)'}}>h = Manhattan distance</div><div style={{marginTop:8,color:'#ffdd00'}}>Optimal + fast</div></>):(<><div style={{color:'var(--cyan)',marginBottom:5,fontFamily:"'Press Start 2P',cursive",fontSize:8}}>Dijkstra</div><div>f(n) = g(n) + 0</div><div style={{color:'var(--tx3)'}}>h = 0 (no heuristic)</div><div style={{marginTop:8,color:'#ffdd00'}}>Uniform exploration</div></>)}
             </div>
           </div>
           <div className="panel-box">
             <div className="panel-title">🔢 PRIORITY QUEUE</div>
             <div className="queue-panel">
               {frame?.queue?.length?frame.queue.map((item,i)=>(
-                <div key={i} className="queue-item">
-                  <span className="q-pos">[{item.r},{item.c}]</span>
-                  <span className="q-f">f={item.f}</span>
-                  <span className="q-g">g={item.g}</span>
-                </div>
-              )):<div style={{color:'#333',fontSize:10,padding:8}}>Run to see queue...</div>}
+                <div key={i} className="queue-item"><span className="q-pos">[{item.r},{item.c}]</span><span className="q-f">f={item.f}</span><span className="q-g">g={item.g}</span></div>
+              )):<div style={{color:'var(--tx4)',fontSize:10,padding:7}}>Run to see queue...</div>}
             </div>
           </div>
           <div className="panel-box">
             <div className="panel-title">💡 TIPS</div>
-            <div style={{fontSize:10,color:'#555',lineHeight:2.3}}>
-              <div>🖱 Click + drag to paint walls</div>
-              <div>🟢 Move start/end points</div>
-              <div>🔄 Compare A* vs Dijkstra</div>
-              <div>⚡ A* visits far fewer nodes</div>
-              <div>🎲 New Maze = new dungeon</div>
+            <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.2}}>
+              <div>🖱 Drag to paint walls</div><div>📱 Touch supported</div><div>🔄 Compare A* vs Dijkstra</div><div>⚡ A* visits fewer nodes</div><div>🎲 New Maze = new dungeon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── BINARY SEARCH GAME ────────────────────────────────────────────────────
+function BinarySearchGame({onBack}){
+  const SIZE=16;
+  const mkArr=()=>genBSArray(SIZE);
+  const[arr,setArr]=useState(mkArr);
+  const[target,setTarget]=useState(null);
+  const[steps,setSteps]=useState([]);
+  const[stepIdx,setStepIdx]=useState(-1);
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(600);
+  const[msg,setMsg]=useState('');
+  const[phase,setPhase]=useState('pick'); // pick | run
+  const timer=useRef(null);
+
+  const cur=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const done=cur&&(cur.phase==='found'||cur.phase==='notFound');
+
+  const pickTarget=val=>{SFX.click();setTarget(val);setPhase('run');const s=genBSSteps(arr,val);setSteps(s);setStepIdx(0);setMsg('');};
+  const reset=()=>{SFX.click();if(timer.current)clearTimeout(timer.current);const a=mkArr();setArr(a);setTarget(null);setSteps([]);setStepIdx(-1);setIsRunning(false);setMsg('');setPhase('pick');};
+  const run=()=>{SFX.click();setIsRunning(true);};
+  const stepFwd=()=>{if(stepIdx>=steps.length-1)return;setStepIdx(p=>p+1);};
+  const stepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
+  const pause=()=>{SFX.click();setIsRunning(false);if(timer.current)clearTimeout(timer.current);};
+
+  useEffect(()=>{
+    if(!isRunning||!steps.length)return;
+    if(stepIdx>=steps.length-1){setIsRunning(false);const last=steps[steps.length-1];if(last.phase==='found'){setMsg(`FOUND ${target} at index ${last.mid}! ✓`);SFX.found();}else{setMsg(`${target} NOT IN ARRAY ✗`);SFX.noPath();}return;}
+    timer.current=setTimeout(()=>setStepIdx(p=>p+1),speed);return()=>clearTimeout(timer.current);
+  },[isRunning,stepIdx,steps,speed,target]);
+
+  const cellCls=idx=>{
+    if(!cur)return phase==='pick'?'target-pick':'';
+    if(cur.phase==='found'&&idx===cur.mid)return'found';
+    if(idx<cur.lo||idx>cur.hi)return'elim';
+    if(idx===cur.mid)return'mid';
+    return'';
+  };
+
+  return(
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+        <span className="section-title">🔍 BINARY SEARCH</span>
+        <HeaderRight/>
+      </div>
+      <div className="bs-layout">
+        <div>
+          <div className="bs-arena">
+            {phase==='pick'&&<div className="message info" style={{marginBottom:12}}>👆 Click any number to search for it!</div>}
+            {phase==='run'&&target!==null&&<div style={{fontFamily:"'Press Start 2P',cursive",fontSize:9,color:'var(--cyan)',marginBottom:12}}>SEARCHING FOR: <span style={{color:'#ffdd00'}}>{target}</span></div>}
+
+            <div className="bs-array">
+              {arr.map((val,idx)=>(
+                <div key={idx} className={`bs-cell ${cellCls(idx)}`}
+                  onClick={()=>{if(phase==='pick')pickTarget(val);}}
+                  style={{position:'relative'}}
+                >
+                  <div className="bs-val">{val}</div>
+                  <div className="bs-idx">[{idx}]</div>
+                  {cur&&idx===cur.mid&&<div className="bs-ptr" style={{color:'#ffdd00'}}>MID</div>}
+                  {cur&&idx===cur.lo&&idx!==cur.mid&&<div className="bs-ptr" style={{color:'var(--green)'}}>LO</div>}
+                  {cur&&idx===cur.hi&&idx!==cur.mid&&<div className="bs-ptr" style={{color:'#ff3355'}}>HI</div>}
+                </div>
+              ))}
+            </div>
+
+            {msg&&<div className={`message${msg.includes('FOUND')&&!msg.includes('NOT')?' success':(msg.includes('NOT')?' error':' info')}`}>{msg}</div>}
+
+            <div className="controls-bar">
+              {phase==='run'&&<>
+                <button className="btn btn-green"  onClick={run}     disabled={isRunning||done}>▶ RUN</button>
+                <button className="btn btn-gray"   onClick={pause}   disabled={!isRunning}>⏸</button>
+                <button className="btn btn-gray"   onClick={stepBck} disabled={isRunning||stepIdx<=0}>◀</button>
+                <button className="btn btn-gray"   onClick={stepFwd} disabled={isRunning||done}>▶</button>
+                <div className="speed-control"><span>FAST</span><input type="range" min={100} max={1200} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/><span>SLOW</span></div>
+              </>}
+              <button className="btn btn-cyan" onClick={reset}>🔀 NEW ARRAY</button>
+            </div>
+
+            <div className="stats-bar" style={{marginTop:8}}>
+              <div className="stat-item"><div className="stat-label">STEP</div><div className="stat-value" style={{color:'#ffdd00',fontSize:13}}>{stepIdx<0?0:stepIdx}<span style={{fontSize:7,color:'var(--tx4)'}}>/{steps.length}</span></div></div>
+              {cur&&<><div className="stat-item"><div className="stat-label">LO</div><div className="stat-value" style={{color:'var(--green)'}}>{cur.lo}</div></div>
+              <div className="stat-item"><div className="stat-label">HI</div><div className="stat-value" style={{color:'#ff3355'}}>{cur.hi}</div></div>
+              <div className="stat-item"><div className="stat-label">MID</div><div className="stat-value" style={{color:'#ffdd00'}}>{cur.mid}</div></div></>}
+            </div>
+          </div>
+        </div>
+
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📄 PSEUDOCODE</div>
+            <div className="pseudo-code">
+              {[
+                {t:'lo=0, hi=n-1',i:0},
+                {t:'while lo <= hi:',i:0},
+                {t:'mid=(lo+hi)/2',i:1},
+                {t:'if arr[mid]==target:',i:1},
+                {t:'return mid ✓',i:2},
+                {t:'elif arr[mid] < target:',i:1},
+                {t:'lo = mid + 1',i:2},
+                {t:'else:',i:1},
+                {t:'hi = mid - 1',i:2},
+                {t:'return -1 (not found)',i:0},
+              ].map((l,i)=>{
+                let active=false;
+                if(cur){if(cur.phase==='check'&&i===2)active=true;if(cur.phase==='found'&&i===4)active=true;if(cur.phase==='goRight'&&i===6)active=true;if(cur.phase==='goLeft'&&i===8)active=true;if(cur.phase==='notFound'&&i===9)active=true;}
+                return<div key={i} className={`pseudo-line indent${l.i}${active?' active':''}`}>{l.t}</div>;
+              })}
+            </div>
+          </div>
+          <div className="panel-box">
+            <div className="panel-title">⚡ COMPLEXITY</div>
+            <div style={{fontSize:11,color:'var(--tx2)',lineHeight:2}}>
+              <div>Time: <span style={{color:'var(--tx)'}}>O(log n)</span></div>
+              <div>Space: <span style={{color:'var(--tx)'}}>O(1)</span></div>
+              <div style={{marginTop:8,color:'var(--tx3)',fontSize:10}}>Array size: {SIZE}</div>
+              <div style={{color:'var(--tx3)',fontSize:10}}>Max steps: {Math.ceil(Math.log2(SIZE))}</div>
+            </div>
+            <span className="complexity-badge good">O(log n)</span>
+          </div>
+          <div className="panel-box">
+            <div className="panel-title">🎨 LEGEND</div>
+            <div style={{fontSize:10,lineHeight:2.2}}>
+              <div><span style={{color:'#ffdd00'}}>■</span> Mid pointer</div>
+              <div><span style={{color:'var(--green)'}}>■</span> Found!</div>
+              <div><span style={{color:'var(--tx4)'}}>■</span> Eliminated</div>
+              <div><span style={{color:'var(--cyan)'}}>■</span> Click to search</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── GRAPH BFS/DFS GAME ────────────────────────────────────────────────────
+function GraphGame({onBack}){
+  const[algo,setAlgo]=useState('bfs');
+  const[startNode,setStartNode]=useState(0);
+  const[steps,setSteps]=useState([]);
+  const[stepIdx,setStepIdx]=useState(-1);
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(500);
+  const[msg,setMsg]=useState('Select start node, then RUN');
+  const timer=useRef(null);
+
+  const cur=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const done=cur&&stepIdx===steps.length-1;
+
+  const run=()=>{SFX.click();const s=algo==='bfs'?genBFS(startNode):genDFS(startNode);setSteps(s);setStepIdx(0);setIsRunning(true);setMsg('');};
+  const reset=()=>{SFX.click();if(timer.current)clearTimeout(timer.current);setSteps([]);setStepIdx(-1);setIsRunning(false);setMsg('Select start node, then RUN');};
+  const pause=()=>{SFX.click();setIsRunning(false);if(timer.current)clearTimeout(timer.current);};
+  const stepFwd=()=>{if(stepIdx>=steps.length-1)return;setStepIdx(p=>p+1);};
+  const stepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
+
+  useEffect(()=>{
+    if(!isRunning||!steps.length)return;
+    if(stepIdx>=steps.length-1){setIsRunning(false);setMsg(`${algo.toUpperCase()} complete! All ${steps.length} nodes visited.`);SFX.sorted();return;}
+    timer.current=setTimeout(()=>setStepIdx(p=>p+1),speed);return()=>clearTimeout(timer.current);
+  },[isRunning,stepIdx,steps,speed,algo]);
+
+  const visitedEdges=new Set();
+  if(cur){GEDGES.forEach(([a,b])=>{if(cur.visited.has(a)&&cur.visited.has(b))visitedEdges.add(edgeKey(a,b));});}
+
+  const nodeColor=id=>{
+    if(!cur){return id===startNode?'#ffdd00':'var(--bg3)';}
+    if(id===cur.current)return algo==='bfs'?'var(--cyan)':'#ff00cc';
+    if(cur.visited.has(id))return'var(--green)';
+    return'var(--bg3)';
+  };
+  const nodeStroke=id=>{
+    if(!cur)return id===startNode?'#ffdd00':'var(--bd)';
+    if(id===cur.current)return algo==='bfs'?'var(--cyan)':'#ff00cc';
+    if(cur.visited.has(id))return'var(--green)';
+    return'var(--bd)';
+  };
+
+  const traversalOrder=steps.slice(0,stepIdx+1).map(s=>s.current);
+
+  return(
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+        <span className="section-title">🕸️ BFS / DFS GRAPH</span>
+        <HeaderRight/>
+      </div>
+      <div className="graph-layout">
+        <div>
+          <div style={{display:'flex',gap:7,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
+            {[['bfs','🌊 BFS'],['dfs','🔽 DFS']].map(([a,lb])=>(
+              <button key={a} className={`algo-btn${algo===a?' active':''}`} onClick={()=>{SFX.click();setAlgo(a);reset();}}>{lb}</button>
+            ))}
+            <button className="btn btn-green"  onClick={run}     disabled={isRunning}>▶ RUN</button>
+            <button className="btn btn-gray"   onClick={pause}   disabled={!isRunning}>⏸</button>
+            <button className="btn btn-gray"   onClick={stepBck} disabled={isRunning||stepIdx<=0}>◀</button>
+            <button className="btn btn-gray"   onClick={stepFwd} disabled={isRunning||done}>▶</button>
+            <button className="btn btn-red"    onClick={reset}>↺ RESET</button>
+            <div className="speed-control"><span>FAST</span><input type="range" min={100} max={1500} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/><span>SLOW</span></div>
+          </div>
+
+          <div className="graph-arena">
+            <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:8,color:'var(--tx3)',marginBottom:8}}>
+              {!steps.length?'👆 Click a node to set start, then RUN':msg||`STEP ${stepIdx+1} / ${steps.length}`}
+            </div>
+
+            <svg className="graph-svg" viewBox="0 0 560 330">
+              {GEDGES.map(([a,b])=>(
+                <line key={`${a}-${b}`} className={`graph-edge${visitedEdges.has(edgeKey(a,b))?' visited':''}`}
+                  x1={GNODES[a].x} y1={GNODES[a].y} x2={GNODES[b].x} y2={GNODES[b].y}
+                  stroke={visitedEdges.has(edgeKey(a,b))?'var(--green)':'var(--bd2)'} strokeWidth="2"
+                />
+              ))}
+              {GNODES.map(n=>(
+                <g key={n.id} className="graph-node" onClick={()=>{if(!isRunning){SFX.click();setStartNode(n.id);reset();}}}
+                  style={{filter:n.id===(cur?.current)&&algo==='bfs'?'drop-shadow(0 0 8px var(--cyan))':n.id===(cur?.current)&&algo==='dfs'?'drop-shadow(0 0 8px #ff00cc)':cur?.visited?.has(n.id)?'drop-shadow(0 0 5px var(--green))':'none'}}
+                >
+                  <circle cx={n.x} cy={n.y} r="22" fill={nodeColor(n.id)} stroke={nodeStroke(n.id)} strokeWidth="2.5"/>
+                  <text x={n.x} y={n.y+4} textAnchor="middle" fontSize="12" fontFamily="'Press Start 2P',cursive" fill={cur?.visited?.has(n.id)||n.id===cur?.current?'#000':'var(--tx)'}>{n.label}</text>
+                </g>
+              ))}
+            </svg>
+
+            <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx3)',marginTop:8,marginBottom:6}}>
+              TRAVERSAL ORDER:
+            </div>
+            <div className="traversal-order">
+              {traversalOrder.map((id,i)=>(
+                <div key={i} className={`order-badge${i===traversalOrder.length-1?' current':''}`}>
+                  {GNODES[id].label}
+                </div>
+              ))}
+              {traversalOrder.length===0&&<span style={{color:'var(--tx4)',fontSize:10}}>—</span>}
+            </div>
+          </div>
+        </div>
+
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📋 {algo==='bfs'?'BFS':'DFS'} ALGORITHM</div>
+            <div style={{fontSize:10,color:'var(--tx2)',lineHeight:2}}>
+              {algo==='bfs'?(<>
+                <div style={{color:'var(--cyan)',fontFamily:"'Press Start 2P',cursive",fontSize:8,marginBottom:6}}>Breadth-First</div>
+                <div>Uses a <span style={{color:'var(--cyan)'}}>QUEUE</span></div>
+                <div style={{color:'var(--tx3)'}}>Visit level by level</div>
+                <div style={{marginTop:8,color:'#ffdd00'}}>Finds shortest path</div>
+                <div style={{color:'var(--tx3)'}}>O(V + E) time</div>
+              </>):(<>
+                <div style={{color:'#ff00cc',fontFamily:"'Press Start 2P',cursive",fontSize:8,marginBottom:6}}>Depth-First</div>
+                <div>Uses a <span style={{color:'#ff00cc'}}>STACK</span></div>
+                <div style={{color:'var(--tx3)'}}>Explore deep first</div>
+                <div style={{marginTop:8,color:'#ffdd00'}}>Good for maze solving</div>
+                <div style={{color:'var(--tx3)'}}>O(V + E) time</div>
+              </>)}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">{algo==='bfs'?'🔢 QUEUE':'📚 STACK'}</div>
+            <div className="stack-panel">
+              {cur?([...(algo==='bfs'?(cur.queue||[]):(cur.stack||[]))].reverse().map((id,i)=>(
+                <div key={i} className="stack-item">{GNODES[id]?.label} (node {id})</div>
+              ))):(<div style={{color:'var(--tx4)',fontSize:10,padding:7}}>Run to see {algo==='bfs'?'queue':'stack'}...</div>)}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">🎨 LEGEND</div>
+            <div style={{fontSize:10,lineHeight:2.3}}>
+              <div><span style={{color:'#ffdd00'}}>●</span> Start node</div>
+              <div><span style={{color:algo==='bfs'?'var(--cyan)':'#ff00cc'}}>●</span> Current node</div>
+              <div><span style={{color:'var(--green)'}}>●</span> Visited</div>
+              <div><span style={{color:'var(--tx3)'}}>●</span> Unvisited</div>
+              <div style={{color:'var(--tx4)',marginTop:4}}>Click node to set start</div>
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">📊 STATS</div>
+            <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.1}}>
+              <div>Visited: <span style={{color:'var(--green)'}}>{cur?.visited?.size||0}</span> / {GNODES.length}</div>
+              <div>Step: <span style={{color:'#ffdd00'}}>{stepIdx<0?0:stepIdx+1}</span> / {steps.length||'—'}</div>
+              <div>Start: <span style={{color:'var(--tx)'}}>{GNODES[startNode].label}</span></div>
             </div>
           </div>
         </div>
@@ -932,16 +1250,51 @@ function PathfindingGame({onBack}) {
 }
 
 // ── APP ───────────────────────────────────────────────────────────────────
-function App() {
-  const [screen,   setScreen]   = useState('menu');
-  const [levelKey, setLevelKey] = useState('medium');
-  if(screen==='sort')  return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
-  if(screen==='level') return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onBack={()=>setScreen('menu')}/>;
-  if(screen==='path')  return <PathfindingGame onBack={()=>setScreen('menu')}/>;
-  return <GameMenu onSelect={mode=>setScreen(mode==='sort'?'level':'path')}/>;
+function App(){
+  const[theme,setTheme]=useState(()=>localStorage.getItem('aq_theme')||'dark');
+  const[screen,setScreen]=useState('menu');
+  const[levelKey,setLevelKey]=useState('medium');
+  const[multiPlayers,setMultiPlayers]=useState(null);
+  const[multiPlayerIdx,setMultiPlayerIdx]=useState(0);
+  const[multiResults,setMultiResults]=useState([]);
+  const[multiSnap,setMultiSnap]=useState(null);
+
+  useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('aq_theme',theme);},[theme]);
+  const toggleTheme=()=>setTheme(t=>t==='dark'?'light':'dark');
+
+  const startMulti=(players)=>{const snap=generateMonsters(levelKey);setMultiSnap(snap);setMultiPlayers(players);setMultiPlayerIdx(0);setMultiResults([]);setScreen('sort');};
+  const handlePlayerDone=(stars,swaps,time,timerOn)=>{
+    const newRes=[...multiResults,{name:multiPlayers[multiPlayerIdx],stars,swaps,time,timerOn}];
+    setMultiResults(newRes);
+    if(multiPlayerIdx<multiPlayers.length-1){setMultiPlayerIdx(i=>i+1);}
+    else{setScreen('multi-results');}
+  };
+  const quitMulti=()=>{setMultiPlayers(null);setMultiSnap(null);setMultiResults([]);setMultiPlayerIdx(0);setScreen('menu');};
+
+  if(screen==='setup')        return <MultiSetup levelKey={levelKey} onStart={startMulti} onBack={()=>setScreen('level')}/>;
+  if(screen==='multi-results') return <MultiResults results={multiResults} onPlayAgain={()=>{setMultiPlayerIdx(0);setMultiResults([]);setMultiSnap(generateMonsters(levelKey));setScreen('sort');}} onMenu={quitMulti}/>;
+  if(screen==='sort'){
+    if(multiPlayers){
+      return <SortingGame key={`mp-${multiPlayerIdx}`} levelKey={levelKey}
+        onBack={()=>setScreen('setup')} onMenu={quitMulti}
+        initialMonsters={multiSnap} multiPlayers={multiPlayers} multiPlayerIdx={multiPlayerIdx}
+        onPlayerDone={handlePlayerDone}
+      />;
+    }
+    return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
+  }
+  if(screen==='level')   return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onMulti={k=>{setLevelKey(k);setScreen('setup');}} onBack={()=>setScreen('menu')}/>;
+  if(screen==='path')    return <PathfindingGame onBack={()=>setScreen('menu')}/>;
+  if(screen==='bsearch') return <BinarySearchGame onBack={()=>setScreen('menu')}/>;
+  if(screen==='graph')   return <GraphGame onBack={()=>setScreen('menu')}/>;
+  return <GameMenu onSelect={mode=>setScreen(mode==='sort'?'level':mode)}/>;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ThemeCtx.Provider value={{theme:document.documentElement.getAttribute('data-theme')||'dark',toggle:()=>{const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('aq_theme',t);}}}>
+    <App/>
+  </ThemeCtx.Provider>
+);
 </script>
 </body>
 </html>
