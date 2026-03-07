@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlgoQuest — Algorithm Visualization Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #07070f;
+      color: #e0e0e0;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,255,128,0.012) 2px, rgba(0,255,128,0.012) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── MENU ── */
+    .menu-container {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 100vh; gap: 48px; padding: 24px;
+    }
+    .game-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: clamp(22px, 5vw, 46px);
+      color: #00ff88;
+      text-shadow: 0 0 20px #00ff88, 0 0 50px #00ff8866;
+      text-align: center;
+      animation: glow 2.5s ease-in-out infinite;
+    }
+    @keyframes glow {
+      0%,100% { text-shadow: 0 0 18px #00ff88, 0 0 40px #00ff8855; }
+      50%      { text-shadow: 0 0 28px #00ff88, 0 0 70px #00ff88aa, 0 0 100px #00ff8833; }
+    }
+    .game-subtitle {
+      font-family: 'Press Start 2P', cursive;
+      font-size: clamp(7px, 1.5vw, 12px);
+      color: #00ffff;
+      text-shadow: 0 0 8px #00ffff88;
+      text-align: center;
+      margin-top: 14px;
+    }
+    .mode-cards { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+    .mode-card {
+      background: #0e0e1e; border: 2px solid #00ff8833; border-radius: 10px;
+      padding: 32px 28px; width: 270px; cursor: pointer;
+      transition: all 0.25s; text-align: center;
+    }
+    .mode-card:hover {
+      border-color: #00ff88;
+      box-shadow: 0 0 24px #00ff8840, inset 0 0 24px #00ff8810;
+      transform: translateY(-6px);
+    }
+    .mode-icon { font-size: 52px; margin-bottom: 18px; }
+    .mode-title { font-family: 'Press Start 2P', cursive; font-size: 11px; color: #00ff88; margin-bottom: 14px; }
+    .mode-desc { font-size: 12px; color: #888; line-height: 1.7; }
+    .mode-play { margin-top: 16px; font-size: 10px; }
+
+    /* ── SHARED ── */
+    .game-container { max-width: 1240px; margin: 0 auto; padding: 20px; }
+    .game-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+    .back-btn {
+      background: #13132a; border: 1px solid #333; color: #888;
+      padding: 8px 18px; cursor: pointer;
+      font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.2s;
+    }
+    .back-btn:hover { border-color: #00ff88; color: #00ff88; }
+    .section-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: clamp(9px, 1.8vw, 15px);
+      color: #00ffff; text-shadow: 0 0 8px #00ffff66;
+    }
+    .btn {
+      padding: 9px 18px; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', cursive; font-size: 7px;
+      transition: all 0.18s; border-radius: 4px;
+    }
+    .btn-green { background: #00ff88; color: #000; }
+    .btn-green:hover { background: #33ffaa; box-shadow: 0 0 12px #00ff88; }
+    .btn-cyan { background: #00ffff; color: #000; }
+    .btn-cyan:hover { background: #55ffff; box-shadow: 0 0 12px #00ffff; }
+    .btn-red { background: #ff3355; color: #fff; }
+    .btn-red:hover { background: #ff5577; box-shadow: 0 0 12px #ff3355; }
+    .btn-gray { background: #1e1e32; color: #888; border: 1px solid #333; }
+    .btn-gray:hover { background: #2a2a42; color: #ccc; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .algo-btn {
+      padding: 7px 15px; border: 1px solid #333; background: #0e0e1e;
+      color: #666; cursor: pointer; font-family: 'Press Start 2P', cursive;
+      font-size: 7px; transition: all 0.18s; border-radius: 4px;
+    }
+    .algo-btn.active { border-color: #00ff88; color: #00ff88; background: #00ff8812; }
+    .controls-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+    .speed-control { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #555; }
+    .speed-control input[type=range] { width: 100px; accent-color: #00ff88; }
+    .stats-bar { display: flex; gap: 16px; flex-wrap: wrap; }
+    .stat-item { background: #0e0e1e; border: 1px solid #1e1e32; border-radius: 4px; padding: 8px 16px; text-align: center; }
+    .stat-label { font-size: 7px; color: #444; font-family: 'Press Start 2P', cursive; margin-bottom: 4px; }
+    .stat-value { font-size: 20px; font-family: 'Press Start 2P', cursive; }
+    .message {
+      text-align: center; padding: 9px; border-radius: 4px;
+      font-family: 'Press Start 2P', cursive; font-size: 8px; margin: 8px 0;
+    }
+    .message.success { background: #00ff8820; color: #00ff88; border: 1px solid #00ff8866; }
+    .message.error   { background: #ff333320; color: #ff5566; border: 1px solid #ff335566; }
+    .message.info    { background: #0044ff20; color: #5588ff; border: 1px solid #0044ff66; }
+
+    /* ── SORT ── */
+    .sort-layout { display: grid; grid-template-columns: 1fr 290px; gap: 20px; }
+    @media (max-width: 860px) { .sort-layout { grid-template-columns: 1fr; } }
+    .monster-arena { background: #0b0b18; border: 1px solid #00ff8820; border-radius: 8px; padding: 18px; }
+    .monster-row {
+      display: flex; gap: 8px; justify-content: center;
+      flex-wrap: wrap; margin: 18px 0; min-height: 190px; align-items: flex-end;
+    }
+    .monster-card {
+      width: 96px; background: #14142a; border: 2px solid #222;
+      border-radius: 8px; padding: 10px; cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s; text-align: center;
+    }
+    .monster-card.comparing { border-color: #3377ff; box-shadow: 0 0 14px #3377ff88; }
+    .monster-card.swapping  { border-color: #ff3344; box-shadow: 0 0 14px #ff334488; animation: shake 0.25s; }
+    .monster-card.pivot     { border-color: #ffdd00; box-shadow: 0 0 14px #ffdd0088; }
+    .monster-card.sorted    { border-color: #00ff88; box-shadow: 0 0 10px #00ff8844; }
+    .monster-card.selected  { border-color: #ff00cc; box-shadow: 0 0 14px #ff00cc88; }
+    .monster-card.merging   { border-color: #ff7700; box-shadow: 0 0 14px #ff770066; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-5px); }
+      75%      { transform: translateX(5px); }
+    }
+    .monster-emoji { font-size: 30px; margin-bottom: 7px; }
+    .monster-name { font-size: 6px; color: #555; margin-bottom: 5px; font-family: 'Press Start 2P', cursive; }
+    .monster-hp { font-family: 'Press Start 2P', cursive; font-size: 13px; color: #ddd; margin-bottom: 7px; }
+    .hp-bar { height: 5px; background: #1e1e2e; border-radius: 3px; overflow: hidden; }
+    .hp-fill { height: 100%; border-radius: 3px; transition: width 0.25s; }
+
+    /* Side panel */
+    .side-panel { display: flex; flex-direction: column; gap: 14px; }
+    .panel-box { background: #0b0b18; border: 1px solid #00ff8820; border-radius: 8px; padding: 15px; }
+    .panel-title { font-family: 'Press Start 2P', cursive; font-size: 8px; color: #00ffff; margin-bottom: 12px; }
+    .pseudo-code { font-size: 11px; line-height: 1.9; }
+    .pseudo-line { padding: 2px 6px; border-radius: 2px; color: #444; transition: all 0.15s; }
+    .pseudo-line.active { background: #00ff8820; color: #00ff88; border-left: 2px solid #00ff88; }
+    .pseudo-line.indent1 { padding-left: 18px; }
+    .pseudo-line.indent2 { padding-left: 32px; }
+    .pseudo-line.indent3 { padding-left: 46px; }
+    .complexity-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: bold; margin-top: 6px;
+    }
+    .complexity-badge.bad  { background: #ff334420; color: #ff5566; border: 1px solid #ff3344; }
+    .complexity-badge.mid  { background: #ffdd0020; color: #ffdd44; border: 1px solid #ffdd00; }
+    .complexity-badge.good { background: #00ff8820; color: #00ff88; border: 1px solid #00ff88; }
+
+    /* ── PATH ── */
+    .path-layout { display: grid; grid-template-columns: 1fr 270px; gap: 20px; }
+    @media (max-width: 860px) { .path-layout { grid-template-columns: 1fr; } }
+    .dungeon-area { background: #0b0b18; border: 1px solid #00ff8820; border-radius: 8px; padding: 16px; }
+    .dungeon-grid {
+      display: inline-grid; gap: 1px; background: #0d0d1a;
+      border: 1px solid #1a1a2a; cursor: crosshair; user-select: none;
+    }
+    .grid-cell { width: 26px; height: 26px; transition: background-color 0.1s; }
+    .cell-empty  { background: #0e0e1e; }
+    .cell-empty:hover { background: #1a1a2e; }
+    .cell-wall   { background: #1e1e1e; border: 1px solid #2a2a2a; }
+    .cell-start  { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+    .cell-end    { background: #ff3355; box-shadow: 0 0 6px #ff3355; }
+    .cell-open   { background: #1133cc99; }
+    .cell-closed { background: #1a1a36; }
+    .cell-path   { background: #00ffff; box-shadow: 0 0 5px #00ffff99; }
+    .cell-current { background: #ffdd00; box-shadow: 0 0 8px #ffdd0099; }
+    .tool-select { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .tool-btn {
+      padding: 6px 13px; border: 1px solid #333; background: #0e0e1e;
+      color: #666; cursor: pointer; font-size: 10px; transition: all 0.18s; border-radius: 4px;
+    }
+    .tool-btn.active { border-color: #00ffff; color: #00ffff; background: #00ffff12; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #777; }
+    .legend-dot { width: 13px; height: 13px; border-radius: 2px; flex-shrink: 0; }
+    .queue-panel { max-height: 180px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #00ff88 #111; }
+    .queue-item {
+      display: flex; justify-content: space-between;
+      padding: 4px 8px; border-bottom: 1px solid #1a1a2e;
+      font-size: 10px; font-family: 'Courier New', monospace;
+    }
+    .queue-item:first-child { background: #00ff8812; color: #00ff88; }
+    .queue-item .q-pos { color: #00ffff; }
+    .queue-item .q-f   { color: #ff00cc; }
+    .queue-item .q-g   { color: #ffdd00; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ──────────────────────── DATA ────────────────────────
+const MONSTERS = [
+  { emoji: '🐲', name: 'DRAGON',  color: '#ff4455' },
+  { emoji: '👹', name: 'OGRE',    color: '#ff8800' },
+  { emoji: '🧟', name: 'ZOMBIE',  color: '#88bb00' },
+  { emoji: '👻', name: 'GHOST',   color: '#8899ff' },
+  { emoji: '🦇', name: 'BAT',     color: '#9955ff' },
+  { emoji: '🕷️', name: 'SPIDER',  color: '#bb5500' },
+  { emoji: '🐺', name: 'WOLF',    color: '#999999' },
+  { emoji: '🦂', name: 'SCORP',   color: '#ffcc00' },
+];
+
+// ──────────────────────── SORTING STEP GENERATORS ────────────────────────
+const cloneArr = a => [...a];
+
+function generateBubbleSortSteps(arr) {
+  const steps = [];
+  const a = cloneArr(arr);
+  const n = a.length;
+  const sortedSet = new Set();
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = 0; j < n - i - 1; j++) {
+      steps.push({ arr: cloneArr(a), comparing: [j, j+1], swapping: [], sorted: [...sortedSet], pivot: -1, pseudoLine: 2 });
+      if (a[j] > a[j+1]) {
+        [a[j], a[j+1]] = [a[j+1], a[j]];
+        steps.push({ arr: cloneArr(a), comparing: [], swapping: [j, j+1], sorted: [...sortedSet], pivot: -1, pseudoLine: 4 });
+      }
+    }
+    sortedSet.add(n - 1 - i);
+    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...sortedSet], pivot: -1, pseudoLine: 1 });
+  }
+  sortedSet.add(0);
+  steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...sortedSet], pivot: -1, pseudoLine: 5 });
+  return steps;
+}
+
+function generateQuickSortSteps(arr) {
+  const steps = [];
+  const a = cloneArr(arr);
+  const sortedSet = new Set();
+  function partition(low, high) {
+    let i = low - 1;
+    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...sortedSet], pivot: high, pseudoLine: 0 });
+    for (let j = low; j < high; j++) {
+      steps.push({ arr: cloneArr(a), comparing: [j, high], swapping: [], sorted: [...sortedSet], pivot: high, pseudoLine: 2 });
+      if (a[j] <= a[high]) {
+        i++;
+        if (i !== j) {
+          [a[i], a[j]] = [a[j], a[i]];
+          steps.push({ arr: cloneArr(a), comparing: [], swapping: [i, j], sorted: [...sortedSet], pivot: high, pseudoLine: 4 });
+        }
+      }
+    }
+    [a[i+1], a[high]] = [a[high], a[i+1]];
+    sortedSet.add(i + 1);
+    steps.push({ arr: cloneArr(a), comparing: [], swapping: [i+1, high], sorted: [...sortedSet], pivot: i+1, pseudoLine: 5 });
+    return i + 1;
+  }
+  function quicksort(low, high) {
+    if (low < high) {
+      const pi = partition(low, high);
+      quicksort(low, pi - 1);
+      quicksort(pi + 1, high);
+    } else if (low === high) {
+      sortedSet.add(low);
+      steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...sortedSet], pivot: -1, pseudoLine: 6 });
+    }
+  }
+  quicksort(0, a.length - 1);
+  const allIdx = a.map((_, i) => i);
+  steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: allIdx, pivot: -1, pseudoLine: 6 });
+  return steps;
+}
+
+function generateMergeSortSteps(arr) {
+  const steps = [];
+  const a = cloneArr(arr);
+  function merge(l, m, r) {
+    const left = a.slice(l, m + 1);
+    const right = a.slice(m + 1, r + 1);
+    let i = 0, j = 0, k = l;
+    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [], pivot: -1, pseudoLine: 3, mergeRange: [l, r] });
+    while (i < left.length && j < right.length) {
+      steps.push({ arr: cloneArr(a), comparing: [l + i, m + 1 + j], swapping: [], sorted: [], pivot: -1, pseudoLine: 4, mergeRange: [l, r] });
+      if (left[i] <= right[j]) a[k++] = left[i++];
+      else                      a[k++] = right[j++];
+      steps.push({ arr: cloneArr(a), comparing: [], swapping: [k - 1], sorted: [], pivot: -1, pseudoLine: 5, mergeRange: [l, r] });
+    }
+    while (i < left.length) a[k++] = left[i++];
+    while (j < right.length) a[k++] = right[j++];
+    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [], pivot: -1, pseudoLine: 6, mergeRange: [l, r] });
+  }
+  function mergesort(l, r) {
+    if (l < r) {
+      const m = Math.floor((l + r) / 2);
+      steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [], pivot: -1, pseudoLine: 0, mergeRange: [l, r] });
+      mergesort(l, m);
+      mergesort(m + 1, r);
+      merge(l, m, r);
+    }
+  }
+  mergesort(0, a.length - 1);
+  steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: a.map((_, i) => i), pivot: -1, pseudoLine: 7 });
+  return steps;
+}
+
+// ──────────────────────── PSEUDOCODE DEFS ────────────────────────
+const PSEUDOCODES = {
+  bubble: [
+    { text: 'for i = 0 to n-1:',         indent: 0 },
+    { text: 'for j = 0 to n-i-2:',       indent: 1 },
+    { text: 'compare arr[j], arr[j+1]',  indent: 2 },
+    { text: 'if arr[j] > arr[j+1]:',     indent: 2 },
+    { text: 'swap(arr[j], arr[j+1])',    indent: 3 },
+    { text: '// Sorted!  ✓',             indent: 0 },
+  ],
+  quick: [
+    { text: 'pivot = arr[high]',                  indent: 0 },
+    { text: 'i = low - 1',                        indent: 0 },
+    { text: 'for j = low to high-1:',             indent: 0 },
+    { text: 'if arr[j] <= pivot:',                indent: 1 },
+    { text: 'swap(arr[++i], arr[j])',             indent: 2 },
+    { text: 'swap(arr[i+1], pivot) → placed!',   indent: 1 },
+    { text: 'recurse left & right halves',        indent: 0 },
+    { text: '// Sorted!  ✓',                      indent: 0 },
+  ],
+  merge: [
+    { text: 'mergesort(l, r):',              indent: 0 },
+    { text: 'if l < r:',                    indent: 1 },
+    { text: 'm = (l + r) / 2',             indent: 2 },
+    { text: 'merge(l, m, r) →',            indent: 1 },
+    { text: 'compare left[i] vs right[j]', indent: 2 },
+    { text: 'place smaller element',       indent: 3 },
+    { text: 'copy remaining elements',     indent: 2 },
+    { text: '// Sorted!  ✓',               indent: 0 },
+  ],
+};
+
+const COMPLEXITIES = {
+  bubble: { time: 'O(n²)',      space: 'O(1)',      badge: 'bad'  },
+  quick:  { time: 'O(n log n)', space: 'O(log n)',  badge: 'mid'  },
+  merge:  { time: 'O(n log n)', space: 'O(n)',      badge: 'mid'  },
+};
+
+// ──────────────────────── PATHFINDING ────────────────────────
+const ROWS = 18, COLS = 24;
+
+const createGrid = () =>
+  Array.from({ length: ROWS }, (_, r) =>
+    Array.from({ length: COLS }, (_, c) => ({ r, c, wall: false }))
+  );
+
+function generateMaze() {
+  const g = createGrid();
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (Math.random() < 0.28) g[r][c].wall = true;
+  // clear start/end zones
+  [[1,1],[1,2],[2,1],[ROWS-2,COLS-2],[ROWS-2,COLS-3],[ROWS-3,COLS-2]].forEach(([r,c]) => {
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) g[r][c].wall = false;
+  });
+  return g;
+}
+
+function manhattan(r1,c1,r2,c2) { return Math.abs(r1-r2)+Math.abs(c1-c2); }
+
+function runPathfinding(grid, start, end, astar) {
+  const frames = [];
+  const dist = Array.from({length:ROWS},()=>Array(COLS).fill(Infinity));
+  const prev = Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  dist[start[0]][start[1]] = 0;
+
+  // simple sorted array as priority queue (good enough for these grid sizes)
+  let open = [{ r:start[0], c:start[1], g:0, f:0 }];
+  const visited = new Set();
+  const openSet = new Set([`${start[0]},${start[1]}`]);
+
+  while (open.length > 0) {
+    open.sort((a,b) => a.f - b.f);
+    const curr = open.shift();
+    const key = `${curr.r},${curr.c}`;
+    openSet.delete(key);
+    if (visited.has(key)) continue;
+    visited.add(key);
+
+    frames.push({
+      visited: new Set(visited),
+      open: new Set(openSet),
+      current: [curr.r, curr.c],
+      queue: open.slice(0, 12).map(x => ({...x})),
+    });
+
+    if (curr.r === end[0] && curr.c === end[1]) break;
+
+    for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr = curr.r+dr, nc = curr.c+dc;
+      if (nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+      if (grid[nr][nc].wall) continue;
+      const nk = `${nr},${nc}`;
+      if (visited.has(nk)) continue;
+      const ng = curr.g + 1;
+      if (ng < dist[nr][nc]) {
+        dist[nr][nc] = ng;
+        prev[nr][nc] = [curr.r, curr.c];
+        const h = astar ? manhattan(nr,nc,end[0],end[1]) : 0;
+        openSet.add(nk);
+        open.push({ r:nr, c:nc, g:ng, f:ng+h });
+      }
+    }
+  }
+
+  // reconstruct path
+  const path = [];
+  let cur = end;
+  while (cur && !(cur[0]===start[0] && cur[1]===start[1])) {
+    path.unshift(cur);
+    cur = prev[cur[0]][cur[1]];
+  }
+  if (cur) path.unshift(start);
+  const found = path.length > 1 && path[path.length-1][0]===end[0] && path[path.length-1][1]===end[1];
+  if (frames.length > 0) frames[frames.length-1] = { ...frames[frames.length-1], path: found ? path : [], found };
+  return { frames, path: found ? path : [], found };
+}
+
+// ──────────────────────── COMPONENTS ────────────────────────
+
+function GameMenu({ onSelect }) {
+  return (
+    <div className="menu-container">
+      <div>
+        <div className="game-title">⚔ ALGOQUEST ⚔</div>
+        <div className="game-subtitle">ALGORITHM VISUALIZATION GAME</div>
+      </div>
+      <div className="mode-cards">
+        <div className="mode-card" onClick={() => onSelect('sort')}>
+          <div className="mode-icon">👾</div>
+          <div className="mode-title">MONSTER SORTER</div>
+          <div className="mode-desc">
+            Sort monsters by HP using Bubble, Merge, or Quick Sort.
+            Watch live pseudocode highlight every step.
+          </div>
+          <div className="mode-play" style={{color:'#00ff88'}}>▶ PLAY</div>
+        </div>
+        <div className="mode-card" onClick={() => onSelect('path')}>
+          <div className="mode-icon">🗺</div>
+          <div className="mode-title">DUNGEON ESCAPE</div>
+          <div className="mode-desc">
+            Watch A* and Dijkstra navigate a dungeon maze.
+            Paint walls, move targets, and compare algorithms live.
+          </div>
+          <div className="mode-play" style={{color:'#00ffff'}}>▶ PLAY</div>
+        </div>
+      </div>
+      <div style={{color:'#333', fontSize:9, textAlign:'center', fontFamily:"'Press Start 2P', cursive"}}>
+        LEARN CS ALGORITHMS THROUGH PLAY
+      </div>
+    </div>
+  );
+}
+
+function SortingGame({ onBack }) {
+  const COUNT = 8;
+  const makeMonsters = () => {
+    const vals = Array.from({length: COUNT}, () => Math.floor(Math.random()*89)+10);
+    return vals.map((hp, i) => ({ ...MONSTERS[i], hp }));
+  };
+
+  const [monsters, setMonsters] = useState(makeMonsters);
+  const [algo, setAlgo]         = useState('bubble');
+  const [steps, setSteps]       = useState([]);
+  const [stepIdx, setStepIdx]   = useState(-1);
+  const [isRunning, setIsRunning] = useState(false);
+  const [speed, setSpeed]       = useState(280);
+  const [selected, setSelected] = useState(-1);
+  const [swapCount, setSwapCount] = useState(0);
+  const [cmpCount,  setCmpCount]  = useState(0);
+  const [message, setMessage]   = useState('');
+  const timerRef = useRef(null);
+
+  const currentStep = stepIdx >= 0 && stepIdx < steps.length ? steps[stepIdx] : null;
+  const displayArr  = currentStep
+    ? currentStep.arr.map((hp, i) => ({ ...MONSTERS[i % MONSTERS.length], hp }))
+    : monsters;
+  const maxHp = Math.max(...displayArr.map(m => m.hp), 1);
+
+  const cardClass = (idx) => {
+    if (!currentStep) return selected === idx ? 'selected' : '';
+    const { comparing, swapping, sorted, pivot, mergeRange } = currentStep;
+    if (sorted && sorted.includes(idx))           return 'sorted';
+    if (swapping && swapping.includes(idx))        return 'swapping';
+    if (comparing && comparing.includes(idx))      return 'comparing';
+    if (pivot === idx)                             return 'pivot';
+    if (mergeRange && idx >= mergeRange[0] && idx <= mergeRange[1]) return 'merging';
+    return '';
+  };
+
+  const genSteps = useCallback((mon, algoName) => {
+    const arr = mon.map(m => m.hp);
+    if (algoName === 'bubble') return generateBubbleSortSteps(arr);
+    if (algoName === 'quick')  return generateQuickSortSteps(arr);
+    return generateMergeSortSteps(arr);
+  }, []);
+
+  const stop = useCallback(() => {
+    setIsRunning(false);
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  }, []);
+
+  const reset = () => { stop(); setStepIdx(-1); setSteps([]); setSwapCount(0); setCmpCount(0); setMessage(''); };
+
+  const handleAlgoChange = (a) => { stop(); setAlgo(a); setStepIdx(-1); setSteps([]); setSwapCount(0); setCmpCount(0); setMessage(''); };
+  const handleShuffle = () => { stop(); setMonsters(makeMonsters()); setStepIdx(-1); setSteps([]); setSwapCount(0); setCmpCount(0); setMessage(''); };
+
+  const handleRun = () => {
+    let s = steps;
+    if (!s.length) { s = genSteps(monsters, algo); setSteps(s); }
+    setIsRunning(true);
+    setStepIdx(prev => prev < 0 ? 0 : prev);
+  };
+
+  const handleStepFwd = () => {
+    let s = steps;
+    if (!s.length) { s = genSteps(monsters, algo); setSteps(s); }
+    setStepIdx(prev => {
+      const next = Math.min(prev + 1, s.length - 1);
+      if (s[next]) {
+        if (s[next].swapping && s[next].swapping.length) setSwapCount(c => c+1);
+        if (s[next].comparing && s[next].comparing.length) setCmpCount(c => c+1);
+      }
+      return next;
+    });
+  };
+
+  const handleStepBck = () => setStepIdx(prev => Math.max(prev - 1, 0));
+
+  const handleMonsterClick = (idx) => {
+    if (isRunning || steps.length) return;
+    if (selected === -1) { setSelected(idx); return; }
+    if (selected === idx) { setSelected(-1); return; }
+    const m = [...monsters];
+    [m[selected], m[idx]] = [m[idx], m[selected]];
+    setMonsters(m);
+    setSwapCount(c => c+1);
+    setSelected(-1);
+  };
+
+  // auto-advance
+  useEffect(() => {
+    if (!isRunning || !steps.length) return;
+    if (stepIdx >= steps.length - 1) {
+      setIsRunning(false);
+      setMessage('SORTED! Algorithm complete  ✓');
+      return;
+    }
+    timerRef.current = setTimeout(() => {
+      setStepIdx(prev => {
+        const next = prev + 1;
+        if (steps[next]) {
+          if (steps[next].swapping && steps[next].swapping.length) setSwapCount(c => c+1);
+          if (steps[next].comparing && steps[next].comparing.length) setCmpCount(c => c+1);
+        }
+        return next;
+      });
+    }, speed);
+    return () => clearTimeout(timerRef.current);
+  }, [isRunning, stepIdx, steps, speed]);
+
+  const pseudo = PSEUDOCODES[algo];
+  const complexity = COMPLEXITIES[algo];
+  const activeLine = currentStep ? currentStep.pseudoLine : -1;
+
+  return (
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={onBack}>← BACK</button>
+        <span className="section-title">👾 MONSTER SORTER</span>
+      </div>
+
+      <div className="sort-layout">
+        {/* LEFT */}
+        <div>
+          <div style={{display:'flex', gap:8, marginBottom:12, flexWrap:'wrap'}}>
+            {[['bubble','🫧 BUBBLE'],['quick','⚡ QUICK'],['merge','🔀 MERGE']].map(([a,label]) => (
+              <button key={a} className={`algo-btn ${algo===a?'active':''}`} onClick={() => handleAlgoChange(a)}>{label}</button>
+            ))}
+          </div>
+
+          <div className="monster-arena">
+            <div className="monster-row">
+              {displayArr.map((m, idx) => (
+                <div key={idx} className={`monster-card ${cardClass(idx)}`} onClick={() => handleMonsterClick(idx)}>
+                  <div className="monster-emoji">{m.emoji}</div>
+                  <div className="monster-name">{m.name}</div>
+                  <div className="monster-hp">{m.hp}</div>
+                  <div className="hp-bar">
+                    <div className="hp-fill" style={{width:`${(m.hp/maxHp)*100}%`, background:m.color}} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {message && <div className={`message ${message.includes('SORTED')?'success':'info'}`}>{message}</div>}
+
+            <div className="controls-bar">
+              <button className="btn btn-green" onClick={handleRun}      disabled={isRunning}>▶ RUN</button>
+              <button className="btn btn-gray"  onClick={stop}           disabled={!isRunning}>⏸ PAUSE</button>
+              <button className="btn btn-gray"  onClick={handleStepBck}  disabled={isRunning || stepIdx <= 0}>◀ STEP</button>
+              <button className="btn btn-gray"  onClick={handleStepFwd}  disabled={isRunning}>STEP ▶</button>
+              <button className="btn btn-cyan"  onClick={handleShuffle}>🔀 SHUFFLE</button>
+              <button className="btn btn-red"   onClick={reset}>↺ RESET</button>
+              <div className="speed-control">
+                <span>FAST</span>
+                <input type="range" min={40} max={800} value={speed}
+                  onChange={e => setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}} />
+                <span>SLOW</span>
+              </div>
+            </div>
+
+            <div className="stats-bar">
+              <div className="stat-item">
+                <div className="stat-label">CMP</div>
+                <div className="stat-value" style={{color:'#3377ff'}}>{cmpCount}</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-label">SWAP</div>
+                <div className="stat-value" style={{color:'#ff3355'}}>{swapCount}</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-label">STEP</div>
+                <div className="stat-value" style={{color:'#ffdd00'}}>{stepIdx < 0 ? 0 : stepIdx}<span style={{fontSize:10,color:'#333'}}>/{steps.length}</span></div>
+              </div>
+            </div>
+          </div>
+
+          {!steps.length && (
+            <div style={{marginTop:8, fontSize:11, color:'#444', fontFamily:'Courier New'}}>
+              💡 Click two monsters to swap manually — or hit RUN to watch the algorithm
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT */}
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📄 PSEUDOCODE</div>
+            <div className="pseudo-code">
+              {pseudo.map((line, i) => (
+                <div key={i} className={`pseudo-line indent${line.indent} ${activeLine===i?'active':''}`}>
+                  {line.text}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">⚡ COMPLEXITY</div>
+            <div style={{fontSize:12, color:'#888', lineHeight:2}}>
+              <div>Time:  <span style={{color:'#ddd'}}>{complexity.time}</span></div>
+              <div>Space: <span style={{color:'#ddd'}}>{complexity.space}</span></div>
+            </div>
+            <span className={`complexity-badge ${complexity.badge}`}>{complexity.time}</span>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">🎨 LEGEND</div>
+            <div style={{fontSize:11, lineHeight:2.2}}>
+              <div><span style={{color:'#3377ff'}}>■</span> Comparing</div>
+              <div><span style={{color:'#ff3344'}}>■</span> Swapping</div>
+              <div><span style={{color:'#ffdd00'}}>■</span> Pivot</div>
+              <div><span style={{color:'#ff7700'}}>■</span> Merge range</div>
+              <div><span style={{color:'#00ff88'}}>■</span> Sorted</div>
+              <div><span style={{color:'#ff00cc'}}>■</span> Selected (manual)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PathfindingGame({ onBack }) {
+  const [grid,    setGrid]    = useState(generateMaze);
+  const [start,   setStart]   = useState([1, 1]);
+  const [end,     setEnd]     = useState([ROWS-2, COLS-2]);
+  const [algo,    setAlgo]    = useState('astar');
+  const [tool,    setTool]    = useState('wall');
+  const [isRunning, setIsRunning] = useState(false);
+  const [speed,   setSpeed]   = useState(25);
+  const [frames,  setFrames]  = useState([]);
+  const [frameIdx,setFrameIdx]= useState(-1);
+  const [result,  setResult]  = useState(null);
+  const [mouseDown, setMouseDown] = useState(false);
+  const [message, setMessage] = useState('');
+  const timerRef = useRef(null);
+
+  const frame = frameIdx >= 0 && frameIdx < frames.length ? frames[frameIdx] : null;
+
+  const cellClass = (r, c) => {
+    if (r===start[0] && c===start[1]) return 'cell-start';
+    if (r===end[0]   && c===end[1])   return 'cell-end';
+    if (grid[r][c].wall)              return 'cell-wall';
+    if (frame) {
+      const key = `${r},${c}`;
+      if (frame.path && frame.path.some(([pr,pc]) => pr===r && pc===c)) return 'cell-path';
+      if (frame.current && frame.current[0]===r && frame.current[1]===c) return 'cell-current';
+      if (frame.visited && frame.visited.has(key)) return 'cell-closed';
+      if (frame.open    && frame.open.has(key))    return 'cell-open';
+    }
+    return 'cell-empty';
+  };
+
+  const resetViz = () => {
+    setIsRunning(false);
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    setFrames([]); setFrameIdx(-1); setResult(null); setMessage('');
+  };
+
+  const interact = (r, c) => {
+    if (isRunning) return;
+    if (tool === 'start') { setStart([r,c]); resetViz(); return; }
+    if (tool === 'end')   { setEnd([r,c]);   resetViz(); return; }
+    if (r===start[0]&&c===start[1]) return;
+    if (r===end[0]  &&c===end[1])   return;
+    const g = grid.map(row => row.map(cell => ({...cell})));
+    g[r][c].wall = (tool === 'wall');
+    setGrid(g);
+    resetViz();
+  };
+
+  const handleRun = () => {
+    resetViz();
+    const { frames: f, path, found } = runPathfinding(grid, start, end, algo==='astar');
+    setFrames(f); setResult({ path, found }); setFrameIdx(0); setIsRunning(true);
+  };
+
+  const handleNewMaze = () => {
+    resetViz();
+    setGrid(generateMaze());
+    setStart([1,1]);
+    setEnd([ROWS-2, COLS-2]);
+  };
+
+  useEffect(() => {
+    if (!isRunning || !frames.length) return;
+    if (frameIdx >= frames.length - 1) {
+      setIsRunning(false);
+      setMessage(result && result.found ? 'PATH FOUND!  ✓' : 'NO PATH EXISTS  ⛔');
+      return;
+    }
+    timerRef.current = setTimeout(() => setFrameIdx(p => p+1), speed);
+    return () => clearTimeout(timerRef.current);
+  }, [isRunning, frameIdx, frames, speed, result]);
+
+  const visitedCount = frame?.visited?.size ?? 0;
+  const queueSize    = frame?.queue?.length ?? 0;
+  const pathLen      = (result?.found && frameIdx >= frames.length-1) ? result.path.length : 0;
+
+  return (
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={onBack}>← BACK</button>
+        <span className="section-title">🗺 DUNGEON ESCAPE</span>
+      </div>
+
+      <div className="path-layout">
+        {/* LEFT */}
+        <div>
+          <div style={{display:'flex', gap:8, marginBottom:12, flexWrap:'wrap', alignItems:'center'}}>
+            <div style={{display:'flex', gap:8}}>
+              {[['astar','⭐ A*'],['dijkstra','🔵 DIJKSTRA']].map(([a,label]) => (
+                <button key={a} className={`algo-btn ${algo===a?'active':''}`}
+                  onClick={() => { setAlgo(a); resetViz(); }}>{label}</button>
+              ))}
+            </div>
+            <button className="btn btn-green" onClick={handleRun}   disabled={isRunning}>▶ RUN</button>
+            <button className="btn btn-gray"  onClick={() => setIsRunning(false)} disabled={!isRunning}>⏸ PAUSE</button>
+            <button className="btn btn-cyan"  onClick={handleNewMaze}>🎲 NEW MAZE</button>
+            <button className="btn btn-red"   onClick={resetViz}>↺ RESET</button>
+          </div>
+
+          <div className="tool-select">
+            <span style={{fontSize:10, color:'#555', alignSelf:'center', fontFamily:"'Press Start 2P',cursive"}}>TOOL:</span>
+            {[['wall','🧱 WALL'],['erase','🧹 ERASE'],['start','🟢 START'],['end','🔴 END']].map(([t,label]) => (
+              <button key={t} className={`tool-btn ${tool===t?'active':''}`} onClick={() => setTool(t)}>{label}</button>
+            ))}
+          </div>
+
+          {message && (
+            <div className={`message ${message.includes('FOUND')?'success':message.includes('NO')?'error':'info'}`}>
+              {message}
+            </div>
+          )}
+
+          <div className="dungeon-area">
+            <div
+              className="dungeon-grid"
+              style={{gridTemplateColumns:`repeat(${COLS}, 26px)`}}
+              onMouseLeave={() => setMouseDown(false)}
+            >
+              {grid.map((row, r) => row.map((_, c) => (
+                <div
+                  key={`${r}-${c}`}
+                  className={`grid-cell ${cellClass(r,c)}`}
+                  onMouseDown={() => { setMouseDown(true); interact(r,c); }}
+                  onMouseUp={() => setMouseDown(false)}
+                  onMouseEnter={() => { if (mouseDown) interact(r,c); }}
+                />
+              )))}
+            </div>
+
+            <div className="legend">
+              {[
+                ['#00ff88','Start'], ['#ff3355','End'],
+                ['#1133cc99','Open set'], ['#1a1a36','Visited'],
+                ['#ffdd00','Current'], ['#00ffff','Path'], ['#1e1e1e','Wall'],
+              ].map(([color,label]) => (
+                <div key={label} className="legend-item">
+                  <div className="legend-dot" style={{background:color, border:'1px solid #333'}} />
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="stats-bar" style={{marginTop:12}}>
+              <div className="stat-item">
+                <div className="stat-label">VISITED</div>
+                <div className="stat-value" style={{color:'#3377ff'}}>{visitedCount}</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-label">QUEUE</div>
+                <div className="stat-value" style={{color:'#ff00cc'}}>{queueSize}</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-label">PATH</div>
+                <div className="stat-value" style={{color:'#00ff88'}}>{pathLen || '—'}</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-label">FRAMES</div>
+                <div className="stat-value" style={{color:'#ffdd00', fontSize:14}}>{frameIdx<0?0:frameIdx}<span style={{fontSize:9,color:'#333'}}>/{frames.length}</span></div>
+              </div>
+            </div>
+
+            <div className="speed-control" style={{marginTop:12}}>
+              <span>FAST</span>
+              <input type="range" min={5} max={200} value={speed}
+                onChange={e => setSpeed(+e.target.value)} style={{transform:'scaleX(-1)', width:140}} />
+              <span>SLOW</span>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT */}
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📋 ALGORITHM</div>
+            <div style={{fontSize:11, color:'#777', lineHeight:2}}>
+              {algo === 'astar' ? (
+                <>
+                  <div style={{color:'#00ff88', marginBottom:6, fontFamily:"'Press Start 2P',cursive", fontSize:9}}>A* Search</div>
+                  <div>f(n) = g(n) + h(n)</div>
+                  <div style={{color:'#555'}}>g = cost from start</div>
+                  <div style={{color:'#555'}}>h = Manhattan distance</div>
+                  <div style={{marginTop:10, color:'#ffdd00'}}>Finds optimal path</div>
+                  <div style={{color:'#555'}}>efficiently via heuristic</div>
+                </>
+              ) : (
+                <>
+                  <div style={{color:'#00ffff', marginBottom:6, fontFamily:"'Press Start 2P',cursive", fontSize:9}}>Dijkstra</div>
+                  <div>f(n) = g(n) + 0</div>
+                  <div style={{color:'#555'}}>g = cost from start</div>
+                  <div style={{color:'#555'}}>h = 0 (no heuristic)</div>
+                  <div style={{marginTop:10, color:'#ffdd00'}}>Explores uniformly</div>
+                  <div style={{color:'#555'}}>slower than A*</div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">🔢 PRIORITY QUEUE</div>
+            <div className="queue-panel">
+              {frame?.queue?.length ? (
+                frame.queue.map((item, i) => (
+                  <div key={i} className="queue-item">
+                    <span className="q-pos">[{item.r},{item.c}]</span>
+                    <span className="q-f">f={item.f}</span>
+                    <span className="q-g">g={item.g}</span>
+                  </div>
+                ))
+              ) : (
+                <div style={{color:'#333', fontSize:10, padding:8}}>Run to see queue...</div>
+              )}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">💡 TIPS</div>
+            <div style={{fontSize:10, color:'#555', lineHeight:2.2}}>
+              <div>🖱 Click + drag to paint walls</div>
+              <div>🟢 Move start/end points</div>
+              <div>🔄 Compare A* vs Dijkstra</div>
+              <div>⚡ A* visits far fewer nodes</div>
+              <div>🎲 New Maze = new dungeon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [mode, setMode] = useState(null);
+  if (mode === 'sort') return <SortingGame onBack={() => setMode(null)} />;
+  if (mode === 'path') return <PathfindingGame onBack={() => setMode(null)} />;
+  return <GameMenu onSelect={setMode} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
