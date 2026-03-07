@@ -39,6 +39,9 @@
     .back-btn { background: #13132a; border: 1px solid #333; color: #888; padding: 8px 18px; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.2s; }
     .back-btn:hover { border-color: #00ff88; color: #00ff88; }
     .section-title { font-family: 'Press Start 2P', cursive; font-size: clamp(9px, 1.8vw, 14px); color: #00ffff; text-shadow: 0 0 8px #00ffff66; }
+    .mute-btn { background: #13132a; border: 1px solid #333; color: #888; padding: 7px 14px; cursor: pointer; font-size: 14px; transition: all 0.2s; border-radius: 4px; margin-left: auto; }
+    .mute-btn:hover { border-color: #00ff88; }
+    .mute-btn.muted { border-color: #ff3355; color: #ff3355; }
     .btn { padding: 9px 18px; border: none; cursor: pointer; font-family: 'Press Start 2P', cursive; font-size: 7px; transition: all 0.18s; border-radius: 4px; }
     .btn-green { background: #00ff88; color: #000; } .btn-green:hover { background: #33ffaa; box-shadow: 0 0 12px #00ff88; }
     .btn-cyan  { background: #00ffff; color: #000; } .btn-cyan:hover  { background: #55ffff; box-shadow: 0 0 12px #00ffff; }
@@ -150,6 +153,67 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
+// ── SOUND ENGINE (Web Audio API — no external files) ──────────────────────
+let _audioCtx = null;
+let _muted = localStorage.getItem('algoquest_muted') === 'true';
+
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+function tone(freq, type, duration, vol = 0.22, delay = 0) {
+  if (_muted) return;
+  try {
+    const ac = getAudioCtx();
+    const osc  = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ac.currentTime + delay);
+    gain.gain.setValueAtTime(vol, ac.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + delay + duration);
+    osc.start(ac.currentTime + delay);
+    osc.stop(ac.currentTime + delay + duration + 0.01);
+  } catch(e) {}
+}
+
+const SFX = {
+  click:    () => { tone(900, 'square',   0.05, 0.12); },
+  swap:     () => { tone(440, 'square',   0.07, 0.18); tone(330, 'square', 0.07, 0.18, 0.08); },
+  compare:  () => { tone(700, 'square',   0.03, 0.06); },
+  wall:     () => { tone(120, 'square',   0.06, 0.12); },
+  hint:     () => { tone(1047,'sine',     0.08, 0.12); },
+  combo: (n) => {
+    const notes = [523, 659, 784, 1047, 1319];
+    const count = Math.min(n, notes.length);
+    for (let i = 0; i < count; i++) tone(notes[i], 'square', 0.1, 0.2, i * 0.09);
+  },
+  sorted: () => {
+    const seq = [[523,0],[659,0.1],[784,0.2],[1047,0.32],[784,0.46],[1047,0.56],[1319,0.68]];
+    seq.forEach(([f,d]) => tone(f, 'square', 0.18, 0.22, d));
+  },
+  star: (n) => {
+    const notes = [1047, 1319, 1568];
+    for (let i = 0; i < n; i++) tone(notes[i], 'sine', 0.18, 0.2, i * 0.15);
+  },
+  pathFound: () => {
+    [[440,0],[554,0.14],[659,0.28],[880,0.42]].forEach(([f,d]) => tone(f,'sine',0.22,0.2,d));
+  },
+  noPath: () => { tone(220,'sawtooth',0.25,0.2); tone(165,'sawtooth',0.3,0.2,0.22); },
+  back:   () => { tone(440,'square',0.06,0.12); tone(330,'square',0.06,0.12,0.07); },
+  menuSelect: () => { tone(660,'square',0.05,0.15); tone(880,'square',0.1,0.2,0.06); },
+};
+
+function toggleMute() {
+  _muted = !_muted;
+  localStorage.setItem('algoquest_muted', _muted);
+  return _muted;
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────────
 const MONSTERS = [
   { emoji: '🐲', name: 'DRAGON',  color: '#ff4455' },
   { emoji: '👹', name: 'OGRE',    color: '#ff8800' },
@@ -178,155 +242,90 @@ function countInversions(arr) {
       if (arr[i] > arr[j]) inv++;
   return inv;
 }
-
 function getBubbleHint(arr) {
-  for (let i = 0; i < arr.length - 1; i++)
-    if (arr[i] > arr[i + 1]) return [i, i + 1];
+  for (let i = 0; i < arr.length - 1; i++) if (arr[i] > arr[i+1]) return [i, i+1];
   return null;
 }
+function isSorted(arr) { return arr.every((v,i) => i===0 || arr[i-1]<=v); }
+function calcStars(ps, opt) { if(opt===0)return 3; const r=ps/opt; if(r<=1.3)return 3; if(r<=2.0)return 2; return 1; }
 
-function isSorted(arr) { return arr.every((v, i) => i === 0 || arr[i-1] <= v); }
-
-function calcStars(playerSwaps, optimal) {
-  if (optimal === 0) return 3;
-  const r = playerSwaps / optimal;
-  if (r <= 1.3) return 3;
-  if (r <= 2.0) return 2;
-  return 1;
-}
-
+// ── SORTING STEP GENERATORS ───────────────────────────────────────────────
 function generateBubbleSortSteps(arr) {
-  const steps = [], a = cloneArr(arr), n = a.length, ss = new Set();
-  for (let i = 0; i < n - 1; i++) {
-    for (let j = 0; j < n - i - 1; j++) {
-      steps.push({ arr: cloneArr(a), comparing: [j,j+1], swapping: [], sorted: [...ss], pivot: -1, pseudoLine: 2 });
-      if (a[j] > a[j+1]) { [a[j],a[j+1]]=[a[j+1],a[j]]; steps.push({ arr: cloneArr(a), comparing: [], swapping: [j,j+1], sorted: [...ss], pivot: -1, pseudoLine: 4 }); }
+  const steps=[], a=cloneArr(arr), n=a.length, ss=new Set();
+  for(let i=0;i<n-1;i++){
+    for(let j=0;j<n-i-1;j++){
+      steps.push({arr:cloneArr(a),comparing:[j,j+1],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:2});
+      if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];steps.push({arr:cloneArr(a),comparing:[],swapping:[j,j+1],sorted:[...ss],pivot:-1,pseudoLine:4});}
     }
-    ss.add(n-1-i);
-    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...ss], pivot: -1, pseudoLine: 1 });
+    ss.add(n-1-i);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:1});
   }
-  ss.add(0);
-  steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...ss], pivot: -1, pseudoLine: 5 });
+  ss.add(0);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:5});
   return steps;
 }
-
 function generateQuickSortSteps(arr) {
-  const steps = [], a = cloneArr(arr), ss = new Set();
-  function partition(lo, hi) {
-    let i = lo - 1;
-    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...ss], pivot: hi, pseudoLine: 0 });
-    for (let j = lo; j < hi; j++) {
-      steps.push({ arr: cloneArr(a), comparing: [j,hi], swapping: [], sorted: [...ss], pivot: hi, pseudoLine: 2 });
-      if (a[j] <= a[hi]) { i++; if (i!==j) { [a[i],a[j]]=[a[j],a[i]]; steps.push({ arr: cloneArr(a), comparing: [], swapping: [i,j], sorted: [...ss], pivot: hi, pseudoLine: 4 }); } }
-    }
-    [a[i+1],a[hi]]=[a[hi],a[i+1]]; ss.add(i+1);
-    steps.push({ arr: cloneArr(a), comparing: [], swapping: [i+1,hi], sorted: [...ss], pivot: i+1, pseudoLine: 5 });
-    return i+1;
+  const steps=[], a=cloneArr(arr), ss=new Set();
+  function partition(lo,hi){
+    let i=lo-1;steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:hi,pseudoLine:0});
+    for(let j=lo;j<hi;j++){steps.push({arr:cloneArr(a),comparing:[j,hi],swapping:[],sorted:[...ss],pivot:hi,pseudoLine:2});if(a[j]<=a[hi]){i++;if(i!==j){[a[i],a[j]]=[a[j],a[i]];steps.push({arr:cloneArr(a),comparing:[],swapping:[i,j],sorted:[...ss],pivot:hi,pseudoLine:4});}}}
+    [a[i+1],a[hi]]=[a[hi],a[i+1]];ss.add(i+1);steps.push({arr:cloneArr(a),comparing:[],swapping:[i+1,hi],sorted:[...ss],pivot:i+1,pseudoLine:5});return i+1;
   }
-  function qs(lo, hi) {
-    if (lo < hi) { const pi=partition(lo,hi); qs(lo,pi-1); qs(pi+1,hi); }
-    else if (lo===hi) { ss.add(lo); steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [...ss], pivot: -1, pseudoLine: 6 }); }
-  }
-  qs(0, a.length-1);
-  steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: a.map((_,i)=>i), pivot: -1, pseudoLine: 6 });
+  function qs(lo,hi){if(lo<hi){const pi=partition(lo,hi);qs(lo,pi-1);qs(pi+1,hi);}else if(lo===hi){ss.add(lo);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pseudoLine:6});}}
+  qs(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pseudoLine:6});
   return steps;
 }
-
 function generateMergeSortSteps(arr) {
-  const steps = [], a = cloneArr(arr);
-  function merge(l, m, r) {
-    const left=a.slice(l,m+1), right=a.slice(m+1,r+1);
-    let i=0, j=0, k=l;
-    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [], pivot: -1, pseudoLine: 3, mergeRange: [l,r] });
-    while (i<left.length&&j<right.length) {
-      steps.push({ arr: cloneArr(a), comparing: [l+i,m+1+j], swapping: [], sorted: [], pivot: -1, pseudoLine: 4, mergeRange: [l,r] });
-      if (left[i]<=right[j]) a[k++]=left[i++]; else a[k++]=right[j++];
-      steps.push({ arr: cloneArr(a), comparing: [], swapping: [k-1], sorted: [], pivot: -1, pseudoLine: 5, mergeRange: [l,r] });
-    }
-    while (i<left.length) a[k++]=left[i++];
-    while (j<right.length) a[k++]=right[j++];
-    steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [], pivot: -1, pseudoLine: 6, mergeRange: [l,r] });
+  const steps=[], a=cloneArr(arr);
+  function merge(l,m,r){
+    const left=a.slice(l,m+1),right=a.slice(m+1,r+1);let i=0,j=0,k=l;
+    steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pseudoLine:3,mergeRange:[l,r]});
+    while(i<left.length&&j<right.length){steps.push({arr:cloneArr(a),comparing:[l+i,m+1+j],swapping:[],sorted:[],pivot:-1,pseudoLine:4,mergeRange:[l,r]});if(left[i]<=right[j])a[k++]=left[i++];else a[k++]=right[j++];steps.push({arr:cloneArr(a),comparing:[],swapping:[k-1],sorted:[],pivot:-1,pseudoLine:5,mergeRange:[l,r]});}
+    while(i<left.length)a[k++]=left[i++];while(j<right.length)a[k++]=right[j++];
+    steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pseudoLine:6,mergeRange:[l,r]});
   }
-  function ms(l, r) {
-    if (l<r) { const m=Math.floor((l+r)/2); steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: [], pivot: -1, pseudoLine: 0, mergeRange: [l,r] }); ms(l,m); ms(m+1,r); merge(l,m,r); }
-  }
-  ms(0, a.length-1);
-  steps.push({ arr: cloneArr(a), comparing: [], swapping: [], sorted: a.map((_,i)=>i), pivot: -1, pseudoLine: 7 });
+  function ms(l,r){if(l<r){const m=Math.floor((l+r)/2);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pseudoLine:0,mergeRange:[l,r]});ms(l,m);ms(m+1,r);merge(l,m,r);}}
+  ms(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pseudoLine:7});
   return steps;
 }
 
 const PSEUDOCODES = {
-  bubble: [
-    { text: 'for i = 0 to n-1:',        indent: 0 },
-    { text: 'for j = 0 to n-i-2:',      indent: 1 },
-    { text: 'compare arr[j], arr[j+1]', indent: 2 },
-    { text: 'if arr[j] > arr[j+1]:',    indent: 2 },
-    { text: 'swap(arr[j], arr[j+1])',   indent: 3 },
-    { text: '// Sorted!  ✓',            indent: 0 },
-  ],
-  quick: [
-    { text: 'pivot = arr[high]',                indent: 0 },
-    { text: 'i = low - 1',                      indent: 0 },
-    { text: 'for j = low to high-1:',           indent: 0 },
-    { text: 'if arr[j] <= pivot:',              indent: 1 },
-    { text: 'swap(arr[++i], arr[j])',           indent: 2 },
-    { text: 'swap(arr[i+1], pivot) → placed!', indent: 1 },
-    { text: 'recurse left & right halves',      indent: 0 },
-    { text: '// Sorted!  ✓',                    indent: 0 },
-  ],
-  merge: [
-    { text: 'mergesort(l, r):',             indent: 0 },
-    { text: 'if l < r:',                   indent: 1 },
-    { text: 'm = (l + r) / 2',            indent: 2 },
-    { text: 'merge(l, m, r) →',           indent: 1 },
-    { text: 'compare left[i] vs right[j]',indent: 2 },
-    { text: 'place smaller element',      indent: 3 },
-    { text: 'copy remaining elements',    indent: 2 },
-    { text: '// Sorted!  ✓',              indent: 0 },
-  ],
+  bubble: [{text:'for i = 0 to n-1:',indent:0},{text:'for j = 0 to n-i-2:',indent:1},{text:'compare arr[j], arr[j+1]',indent:2},{text:'if arr[j] > arr[j+1]:',indent:2},{text:'swap(arr[j], arr[j+1])',indent:3},{text:'// Sorted!  ✓',indent:0}],
+  quick:  [{text:'pivot = arr[high]',indent:0},{text:'i = low - 1',indent:0},{text:'for j = low to high-1:',indent:0},{text:'if arr[j] <= pivot:',indent:1},{text:'swap(arr[++i], arr[j])',indent:2},{text:'swap(arr[i+1], pivot) → placed!',indent:1},{text:'recurse left & right halves',indent:0},{text:'// Sorted!  ✓',indent:0}],
+  merge:  [{text:'mergesort(l, r):',indent:0},{text:'if l < r:',indent:1},{text:'m = (l + r) / 2',indent:2},{text:'merge(l, m, r) →',indent:1},{text:'compare left[i] vs right[j]',indent:2},{text:'place smaller element',indent:3},{text:'copy remaining elements',indent:2},{text:'// Sorted!  ✓',indent:0}],
 };
-
 const COMPLEXITIES = {
-  bubble: { time: 'O(n²)',      space: 'O(1)',     badge: 'bad' },
-  quick:  { time: 'O(n log n)', space: 'O(log n)', badge: 'mid' },
-  merge:  { time: 'O(n log n)', space: 'O(n)',      badge: 'mid' },
+  bubble:{time:'O(n²)',space:'O(1)',badge:'bad'},
+  quick: {time:'O(n log n)',space:'O(log n)',badge:'mid'},
+  merge: {time:'O(n log n)',space:'O(n)',badge:'mid'},
 };
 
-// ── PATHFINDING ──
-const ROWS = 18, COLS = 24;
+// ── PATHFINDING ───────────────────────────────────────────────────────────
+const ROWS=18, COLS=24;
 const createGrid = () => Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>({r,c,wall:false})));
-
 function generateMaze() {
-  const g = createGrid();
-  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (Math.random()<0.28) g[r][c].wall=true;
-  [[1,1],[1,2],[2,1],[ROWS-2,COLS-2],[ROWS-2,COLS-3],[ROWS-3,COLS-2]].forEach(([r,c])=>{ if(r>=0&&r<ROWS&&c>=0&&c<COLS)g[r][c].wall=false; });
+  const g=createGrid();
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(Math.random()<0.28)g[r][c].wall=true;
+  [[1,1],[1,2],[2,1],[ROWS-2,COLS-2],[ROWS-2,COLS-3],[ROWS-3,COLS-2]].forEach(([r,c])=>{if(r>=0&&r<ROWS&&c>=0&&c<COLS)g[r][c].wall=false;});
   return g;
 }
-
-function manhattan(r1,c1,r2,c2) { return Math.abs(r1-r2)+Math.abs(c1-c2); }
-
-function runPathfinding(grid, start, end, astar) {
-  const frames=[], dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity)), prev=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+function manhattan(r1,c1,r2,c2){return Math.abs(r1-r2)+Math.abs(c1-c2);}
+function runPathfinding(grid,start,end,astar){
+  const frames=[],dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity)),prev=Array.from({length:ROWS},()=>Array(COLS).fill(null));
   dist[start[0]][start[1]]=0;
   let open=[{r:start[0],c:start[1],g:0,f:0}];
-  const visited=new Set(), openSet=new Set([`${start[0]},${start[1]}`]);
-  while (open.length>0) {
-    open.sort((a,b)=>a.f-b.f);
-    const curr=open.shift(), key=`${curr.r},${curr.c}`;
-    openSet.delete(key);
-    if (visited.has(key)) continue;
-    visited.add(key);
+  const visited=new Set(),openSet=new Set([`${start[0]},${start[1]}`]);
+  while(open.length>0){
+    open.sort((a,b)=>a.f-b.f);const curr=open.shift(),key=`${curr.r},${curr.c}`;openSet.delete(key);
+    if(visited.has(key))continue;visited.add(key);
     frames.push({visited:new Set(visited),open:new Set(openSet),current:[curr.r,curr.c],queue:open.slice(0,12).map(x=>({...x}))});
-    if (curr.r===end[0]&&curr.c===end[1]) break;
-    for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+    if(curr.r===end[0]&&curr.c===end[1])break;
+    for(const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]){
       const nr=curr.r+dr,nc=curr.c+dc;
-      if (nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc].wall) continue;
-      const nk=`${nr},${nc}`; if (visited.has(nk)) continue;
-      const ng=curr.g+1;
-      if (ng<dist[nr][nc]) { dist[nr][nc]=ng; prev[nr][nc]=[curr.r,curr.c]; const h=astar?manhattan(nr,nc,end[0],end[1]):0; openSet.add(nk); open.push({r:nr,c:nc,g:ng,f:ng+h}); }
+      if(nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc].wall)continue;
+      const nk=`${nr},${nc}`;if(visited.has(nk))continue;
+      const ng=curr.g+1;if(ng<dist[nr][nc]){dist[nr][nc]=ng;prev[nr][nc]=[curr.r,curr.c];const h=astar?manhattan(nr,nc,end[0],end[1]):0;openSet.add(nk);open.push({r:nr,c:nc,g:ng,f:ng+h});}
     }
   }
-  const path=[]; let cur=end;
+  const path=[];let cur=end;
   while(cur&&!(cur[0]===start[0]&&cur[1]===start[1])){path.unshift(cur);cur=prev[cur[0]][cur[1]];}
   if(cur)path.unshift(start);
   const found=path.length>1&&path[path.length-1][0]===end[0]&&path[path.length-1][1]===end[1];
@@ -334,9 +333,17 @@ function runPathfinding(grid, start, end, astar) {
   return {frames,path:found?path:[],found};
 }
 
-// ── RESULTS ──
+// ── MUTE BUTTON ───────────────────────────────────────────────────────────
+function MuteBtn() {
+  const [muted, setMuted] = useState(_muted);
+  const handle = () => { const m=toggleMute(); setMuted(m); SFX.click(); };
+  return <button className={`mute-btn ${muted?'muted':''}`} onClick={handle} title={muted?'Unmute':'Mute'}>{muted?'🔇':'🔊'}</button>;
+}
+
+// ── RESULTS OVERLAY ───────────────────────────────────────────────────────
 function ResultsOverlay({stars,playerSwaps,optimalSwaps,onRetry,onMenu}) {
-  const pct = optimalSwaps===0?100:Math.min(100,Math.round((optimalSwaps/playerSwaps)*100));
+  useEffect(() => { SFX.star(stars); }, [stars]);
+  const pct=optimalSwaps===0?100:Math.min(100,Math.round((optimalSwaps/playerSwaps)*100));
   return (
     <div className="results-overlay">
       <div className="results-card">
@@ -346,15 +353,15 @@ function ResultsOverlay({stars,playerSwaps,optimalSwaps,onRetry,onMenu}) {
         <div className="results-stat">PAR (OPTIMAL): <span>{optimalSwaps}</span></div>
         <div className="results-stat">EFFICIENCY: <span style={{color:pct>=80?'#00ff88':pct>=50?'#ffdd00':'#ff5566'}}>{pct}%</span></div>
         <div style={{display:'flex',gap:12,justifyContent:'center',marginTop:24}}>
-          <button className="btn btn-green" onClick={onRetry}>↺ RETRY</button>
-          <button className="btn btn-gray"  onClick={onMenu}>← MENU</button>
+          <button className="btn btn-green" onClick={()=>{SFX.click();onRetry();}}>↺ RETRY</button>
+          <button className="btn btn-gray"  onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── GAME MENU ──
+// ── GAME MENU ─────────────────────────────────────────────────────────────
 function GameMenu({onSelect}) {
   return (
     <div className="menu-container">
@@ -363,25 +370,28 @@ function GameMenu({onSelect}) {
         <div className="game-subtitle">ALGORITHM VISUALIZATION GAME</div>
       </div>
       <div className="mode-cards">
-        <div className="mode-card" onClick={()=>onSelect('sort')}>
+        <div className="mode-card" onClick={()=>{SFX.menuSelect();onSelect('sort');}}>
           <div className="mode-icon">👾</div>
           <div className="mode-title">MONSTER SORTER</div>
           <div className="mode-desc">Drag monsters to sort by HP — or watch Bubble, Merge &amp; Quick Sort run with live pseudocode. Earn up to 3 stars!</div>
           <div className="mode-play" style={{color:'#00ff88'}}>▶ PLAY</div>
         </div>
-        <div className="mode-card" onClick={()=>onSelect('path')}>
+        <div className="mode-card" onClick={()=>{SFX.menuSelect();onSelect('path');}}>
           <div className="mode-icon">🗺</div>
           <div className="mode-title">DUNGEON ESCAPE</div>
           <div className="mode-desc">Watch A* and Dijkstra navigate a dungeon maze. Paint walls, move targets, compare algorithms live.</div>
           <div className="mode-play" style={{color:'#00ffff'}}>▶ PLAY</div>
         </div>
       </div>
-      <div style={{color:'#333',fontSize:9,textAlign:'center',fontFamily:"'Press Start 2P',cursive"}}>LEARN CS ALGORITHMS THROUGH PLAY</div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:12}}>
+        <MuteBtn/>
+        <div style={{color:'#333',fontSize:9,textAlign:'center',fontFamily:"'Press Start 2P',cursive"}}>LEARN CS ALGORITHMS THROUGH PLAY</div>
+      </div>
     </div>
   );
 }
 
-// ── LEVEL SELECT ──
+// ── LEVEL SELECT ──────────────────────────────────────────────────────────
 function LevelSelect({onSelect,onBack}) {
   return (
     <div className="menu-container">
@@ -392,7 +402,7 @@ function LevelSelect({onSelect,onBack}) {
       <div className="level-cards">
         {Object.entries(LEVELS).map(([key,lv])=>(
           <div key={key} className="level-card" style={{borderColor:lv.color+'44'}}
-            onClick={()=>onSelect(key)}
+            onClick={()=>{SFX.menuSelect();onSelect(key);}}
             onMouseEnter={e=>{e.currentTarget.style.borderColor=lv.color;e.currentTarget.style.boxShadow=`0 0 20px ${lv.color}33`;e.currentTarget.style.transform='translateY(-5px)';}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor=lv.color+'44';e.currentTarget.style.boxShadow='none';e.currentTarget.style.transform='';}}
           >
@@ -402,20 +412,18 @@ function LevelSelect({onSelect,onBack}) {
           </div>
         ))}
       </div>
-      <button className="back-btn" onClick={onBack}>← BACK</button>
+      <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
     </div>
   );
 }
 
-// ── SORTING GAME ──
+// ── SORTING GAME ──────────────────────────────────────────────────────────
 function SortingGame({levelKey,onBack,onMenu}) {
-  const lv = LEVELS[levelKey];
-  const COUNT = lv.count;
+  const lv=LEVELS[levelKey], COUNT=lv.count;
 
-  const makeMonsters = useCallback(() => {
-    const vals = Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);
-    let t=0;
-    while(isSorted(vals)&&t++<30){const i=Math.floor(Math.random()*vals.length),j=Math.floor(Math.random()*vals.length);[vals[i],vals[j]]=[vals[j],vals[i]];}
+  const makeMonsters = useCallback(()=>{
+    const vals=Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);
+    let t=0;while(isSorted(vals)&&t++<30){const i=Math.floor(Math.random()*vals.length),j=Math.floor(Math.random()*vals.length);[vals[i],vals[j]]=[vals[j],vals[i]];}
     return vals.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp}));
   },[COUNT]);
 
@@ -439,105 +447,116 @@ function SortingGame({levelKey,onBack,onMenu}) {
   const [showHint,    setShowHint]    = useState(true);
   const timerRef = useRef(null);
   const stateRef = useRef({monsters,playerSwaps,optInv,drag});
+  const prevStepRef = useRef(null);
 
   useEffect(()=>{ stateRef.current={monsters,playerSwaps,optInv,drag}; },[monsters,playerSwaps,optInv,drag]);
 
   useEffect(()=>{
     const snap=monsters.map(m=>({...m}));
-    setInitSnap(snap);
-    setOptInv(countInversions(snap.map(m=>m.hp)));
+    setInitSnap(snap); setOptInv(countInversions(snap.map(m=>m.hp)));
   },[]); // eslint-disable-line
 
-  const currentStep = stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
-  const displayArr  = currentStep?currentStep.arr.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp})):monsters;
-  const maxHp = Math.max(...displayArr.map(m=>m.hp),1);
+  const currentStep=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const displayArr=currentStep?currentStep.arr.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp})):monsters;
+  const maxHp=Math.max(...displayArr.map(m=>m.hp),1);
+
+  // Play sound on each watch-mode step change
+  useEffect(()=>{
+    if(gameMode!=='watch'||!currentStep)return;
+    const prev=prevStepRef.current;
+    prevStepRef.current=currentStep;
+    if(!prev)return;
+    if(currentStep.swapping&&currentStep.swapping.length) SFX.swap();
+    else if(currentStep.comparing&&currentStep.comparing.length) SFX.compare();
+  },[currentStep,gameMode]);
 
   const cardClass = idx => {
-    if (gameMode==='play') {
-      if (drag.from===idx) return 'dragging';
-      if (drag.from!==-1&&drag.to===idx) return 'drag-over';
-      if (isSorted(monsters.map(m=>m.hp))) return 'all-done';
+    if(gameMode==='play'){
+      if(drag.from===idx)return'dragging';
+      if(drag.from!==-1&&drag.to===idx)return'drag-over';
+      if(isSorted(monsters.map(m=>m.hp)))return'all-done';
       const h=showHint?getBubbleHint(monsters.map(m=>m.hp)):null;
-      if (h&&(h[0]===idx||h[1]===idx)) return 'hint';
-      return '';
+      if(h&&(h[0]===idx||h[1]===idx))return'hint';
+      return'';
     }
-    if (!currentStep) return '';
-    const {comparing,swapping,sorted,pivot,mergeRange}=currentStep;
-    if (sorted&&sorted.includes(idx))      return 'sorted';
-    if (swapping&&swapping.includes(idx))   return 'swapping';
-    if (comparing&&comparing.includes(idx)) return 'comparing';
-    if (pivot===idx)                        return 'pivot';
-    if (mergeRange&&idx>=mergeRange[0]&&idx<=mergeRange[1]) return 'merging';
-    return '';
+    if(!currentStep)return'';
+    const{comparing,swapping,sorted,pivot,mergeRange}=currentStep;
+    if(sorted&&sorted.includes(idx))return'sorted';
+    if(swapping&&swapping.includes(idx))return'swapping';
+    if(comparing&&comparing.includes(idx))return'comparing';
+    if(pivot===idx)return'pivot';
+    if(mergeRange&&idx>=mergeRange[0]&&idx<=mergeRange[1])return'merging';
+    return'';
   };
 
-  const genSteps = useCallback((mon,algoName)=>{
+  const genSteps=useCallback((mon,algoName)=>{
     const arr=mon.map(m=>m.hp);
-    if(algoName==='bubble') return generateBubbleSortSteps(arr);
-    if(algoName==='quick')  return generateQuickSortSteps(arr);
+    if(algoName==='bubble')return generateBubbleSortSteps(arr);
+    if(algoName==='quick') return generateQuickSortSteps(arr);
     return generateMergeSortSteps(arr);
   },[]);
 
-  const stopWatch = useCallback(()=>{
-    setIsRunning(false);
-    if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
+  const stopWatch=useCallback(()=>{
+    setIsRunning(false);if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
   },[]);
 
-  const resetWatch = ()=>{stopWatch();setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');};
-  const handleAlgoChange = a=>{stopWatch();setAlgo(a);setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');};
+  const resetWatch=()=>{stopWatch();setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');prevStepRef.current=null;};
+  const handleAlgoChange=a=>{SFX.click();stopWatch();setAlgo(a);setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');prevStepRef.current=null;};
 
-  const handleShuffle = ()=>{
-    const m=makeMonsters(); stopWatch();
-    setMonsters(m); setInitSnap(m.map(x=>({...x}))); setOptInv(countInversions(m.map(x=>x.hp)));
-    setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setPlayerSwaps(0);setCombo(0);setMessage('');setShowResults(false);
+  const handleShuffle=()=>{
+    const m=makeMonsters();SFX.click();stopWatch();
+    setMonsters(m);setInitSnap(m.map(x=>({...x})));setOptInv(countInversions(m.map(x=>x.hp)));
+    setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setPlayerSwaps(0);setCombo(0);setMessage('');setShowResults(false);prevStepRef.current=null;
   };
 
-  const handleRetry = ()=>{
-    if(!initSnap)return;
+  const handleRetry=()=>{
+    if(!initSnap)return;SFX.click();
     setMonsters(initSnap.map(x=>({...x})));setPlayerSwaps(0);setCombo(0);setShowResults(false);setMessage('');
   };
 
-  const handleRun = ()=>{
-    let s=steps; if(!s.length){s=genSteps(monsters,algo);setSteps(s);}
-    setIsRunning(true); setStepIdx(p=>p<0?0:p);
+  const handleRun=()=>{
+    SFX.click();let s=steps;if(!s.length){s=genSteps(monsters,algo);setSteps(s);}
+    setIsRunning(true);setStepIdx(p=>p<0?0:p);
   };
 
-  const handleStepFwd = ()=>{
-    let s=steps; if(!s.length){s=genSteps(monsters,algo);setSteps(s);}
+  const handleStepFwd=()=>{
+    let s=steps;if(!s.length){s=genSteps(monsters,algo);setSteps(s);}
     setStepIdx(prev=>{
       const next=Math.min(prev+1,s.length-1);
       if(s[next]){if(s[next].swapping&&s[next].swapping.length)setSwapCount(c=>c+1);if(s[next].comparing&&s[next].comparing.length)setCmpCount(c=>c+1);}
       return next;
     });
   };
+  const handleStepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
 
-  const handleStepBck = ()=>setStepIdx(p=>Math.max(p-1,0));
+  const handleDragStart=idx=>{if(showResults||isSorted(monsters.map(m=>m.hp)))return;setDrag({from:idx,to:-1});};
+  const handleDragEnter=idx=>{if(drag.from===-1||drag.from===idx)return;setDrag(d=>({...d,to:idx}));};
 
-  const handleDragStart = idx=>{ if(showResults||isSorted(monsters.map(m=>m.hp)))return; setDrag({from:idx,to:-1}); };
-  const handleDragEnter = idx=>{ if(drag.from===-1||drag.from===idx)return; setDrag(d=>({...d,to:idx})); };
-
-  const commitSwap = useCallback(()=>{
-    const {monsters:m,playerSwaps:ps,optInv:oi,drag:d}=stateRef.current;
+  const commitSwap=useCallback(()=>{
+    const{monsters:m,playerSwaps:ps,optInv:oi,drag:d}=stateRef.current;
     setDrag({from:-1,to:-1});
     if(d.from===-1||d.to===-1||d.from===d.to)return;
     const hint=getBubbleHint(m.map(x=>x.hp));
     const isOpt=hint&&((d.from===hint[0]&&d.to===hint[1])||(d.from===hint[1]&&d.to===hint[0]));
-    const nm=[...m]; [nm[d.from],nm[d.to]]=[nm[d.to],nm[d.from]];
+    const nm=[...m];[nm[d.from],nm[d.to]]=[nm[d.to],nm[d.from]];
     setMonsters(nm);
-    const ns=ps+1; setPlayerSwaps(ns);
-    setCombo(c=>isOpt?c+1:0);
-    if(isSorted(nm.map(x=>x.hp))){ setResultStars(calcStars(ns,oi)); setTimeout(()=>setShowResults(true),350); }
+    const ns=ps+1;setPlayerSwaps(ns);
+    const newCombo=isOpt?stateRef.current.combo+1:0;
+    setCombo(newCombo);
+    SFX.swap();
+    if(isOpt&&newCombo>1) SFX.combo(newCombo);
+    if(isSorted(nm.map(x=>x.hp))){SFX.sorted();setResultStars(calcStars(ns,oi));setTimeout(()=>setShowResults(true),600);}
   },[]);
 
   useEffect(()=>{
-    const up=()=>{ if(stateRef.current.drag.from!==-1) commitSwap(); };
-    window.addEventListener('mouseup',up);
-    return ()=>window.removeEventListener('mouseup',up);
+    const up=()=>{if(stateRef.current.drag.from!==-1)commitSwap();};
+    window.addEventListener('mouseup',up);return()=>window.removeEventListener('mouseup',up);
   },[commitSwap]);
 
+  // auto-advance watch mode
   useEffect(()=>{
     if(gameMode!=='watch'||!isRunning||!steps.length)return;
-    if(stepIdx>=steps.length-1){setIsRunning(false);setMessage('SORTED! Algorithm complete  ✓');return;}
+    if(stepIdx>=steps.length-1){setIsRunning(false);setMessage('SORTED! Algorithm complete  ✓');SFX.sorted();return;}
     timerRef.current=setTimeout(()=>{
       setStepIdx(prev=>{
         const next=prev+1;
@@ -545,15 +564,15 @@ function SortingGame({levelKey,onBack,onMenu}) {
         return next;
       });
     },speed);
-    return ()=>clearTimeout(timerRef.current);
+    return()=>clearTimeout(timerRef.current);
   },[gameMode,isRunning,stepIdx,steps,speed]);
 
-  const handleModeSwitch = m=>{
-    stopWatch(); setGameMode(m); setStepIdx(-1); setSteps([]); setSwapCount(0); setCmpCount(0); setMessage('');
+  const handleModeSwitch=m=>{
+    SFX.click();stopWatch();setGameMode(m);setStepIdx(-1);setSteps([]);setSwapCount(0);setCmpCount(0);setMessage('');prevStepRef.current=null;
     if(m==='play'&&initSnap){setMonsters(initSnap.map(x=>({...x})));setPlayerSwaps(0);setCombo(0);setShowResults(false);}
   };
 
-  const pseudo=PSEUDOCODES[algo], complexity=COMPLEXITIES[algo], activeLine=currentStep?currentStep.pseudoLine:-1;
+  const pseudo=PSEUDOCODES[algo],complexity=COMPLEXITIES[algo],activeLine=currentStep?currentStep.pseudoLine:-1;
   const hint=gameMode==='play'&&showHint?getBubbleHint(monsters.map(m=>m.hp)):null;
   const sorted=isSorted(monsters.map(m=>m.hp));
 
@@ -561,9 +580,10 @@ function SortingGame({levelKey,onBack,onMenu}) {
     <div className="game-container">
       {showResults&&<ResultsOverlay stars={resultStars} playerSwaps={playerSwaps} optimalSwaps={optInv} onRetry={handleRetry} onMenu={onMenu}/>}
       <div className="game-header">
-        <button className="back-btn" onClick={onBack}>← BACK</button>
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
         <span className="section-title">👾 MONSTER SORTER</span>
-        <span style={{fontSize:8,color:lv.color,fontFamily:"'Press Start 2P',cursive",marginLeft:'auto'}}>{lv.label}</span>
+        <span style={{fontSize:8,color:lv.color,fontFamily:"'Press Start 2P',cursive"}}>{lv.label}</span>
+        <MuteBtn/>
       </div>
 
       <div className="mode-tabs">
@@ -584,7 +604,7 @@ function SortingGame({levelKey,onBack,onMenu}) {
           <div className="monster-arena">
             {gameMode==='play'&&(
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8,flexWrap:'wrap'}}>
-                <button className={`algo-btn ${showHint?'active':''}`} onClick={()=>setShowHint(h=>!h)}>💡 HINT {showHint?'ON':'OFF'}</button>
+                <button className={`algo-btn ${showHint?'active':''}`} onClick={()=>{SFX.click();setShowHint(h=>!h);}}>💡 HINT {showHint?'ON':'OFF'}</button>
                 {hint&&<span style={{fontSize:9,color:'#ffdd00',fontFamily:"'Press Start 2P',cursive"}}>Swap the glowing pair!</span>}
                 {sorted&&<span style={{fontSize:9,color:'#00ff88',fontFamily:"'Press Start 2P',cursive"}}>SORTED ✓</span>}
               </div>
@@ -647,7 +667,6 @@ function SortingGame({levelKey,onBack,onMenu}) {
               </div>
             )}
           </div>
-
           {gameMode==='play'&&!sorted&&(
             <div style={{marginTop:8,fontSize:11,color:'#333',fontFamily:'Courier New'}}>
               💡 Drag monsters to sort low → high HP. Yellow glow = optimal next swap. Match hints to build COMBO!
@@ -661,9 +680,7 @@ function SortingGame({levelKey,onBack,onMenu}) {
               <div className="panel-box">
                 <div className="panel-title">📄 PSEUDOCODE</div>
                 <div className="pseudo-code">
-                  {pseudo.map((line,i)=>(
-                    <div key={i} className={`pseudo-line indent${line.indent} ${activeLine===i?'active':''}`}>{line.text}</div>
-                  ))}
+                  {pseudo.map((line,i)=><div key={i} className={`pseudo-line indent${line.indent} ${activeLine===i?'active':''}`}>{line.text}</div>)}
                 </div>
               </div>
               <div className="panel-box">
@@ -727,7 +744,7 @@ function SortingGame({levelKey,onBack,onMenu}) {
   );
 }
 
-// ── PATHFINDING GAME ──
+// ── PATHFINDING GAME ──────────────────────────────────────────────────────
 function PathfindingGame({onBack}) {
   const [grid,      setGrid]      = useState(generateMaze);
   const [start,     setStart]     = useState([1,1]);
@@ -743,50 +760,58 @@ function PathfindingGame({onBack}) {
   const [message,   setMessage]   = useState('');
   const timerRef = useRef(null);
 
-  const frame = frameIdx>=0&&frameIdx<frames.length?frames[frameIdx]:null;
+  const frame=frameIdx>=0&&frameIdx<frames.length?frames[frameIdx]:null;
 
-  const cellClass = (r,c) => {
-    if(r===start[0]&&c===start[1]) return 'cell-start';
-    if(r===end[0]  &&c===end[1])   return 'cell-end';
-    if(grid[r][c].wall)            return 'cell-wall';
+  const cellClass=(r,c)=>{
+    if(r===start[0]&&c===start[1])return'cell-start';
+    if(r===end[0]  &&c===end[1])  return'cell-end';
+    if(grid[r][c].wall)           return'cell-wall';
     if(frame){
       const key=`${r},${c}`;
-      if(frame.path&&frame.path.some(([pr,pc])=>pr===r&&pc===c)) return 'cell-path';
-      if(frame.current&&frame.current[0]===r&&frame.current[1]===c) return 'cell-current';
-      if(frame.visited&&frame.visited.has(key)) return 'cell-closed';
-      if(frame.open   &&frame.open.has(key))    return 'cell-open';
+      if(frame.path&&frame.path.some(([pr,pc])=>pr===r&&pc===c))return'cell-path';
+      if(frame.current&&frame.current[0]===r&&frame.current[1]===c)return'cell-current';
+      if(frame.visited&&frame.visited.has(key))return'cell-closed';
+      if(frame.open   &&frame.open.has(key))   return'cell-open';
     }
-    return 'cell-empty';
+    return'cell-empty';
   };
 
-  const resetViz = ()=>{
-    setIsRunning(false);
-    if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
+  const resetViz=()=>{
+    setIsRunning(false);if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
     setFrames([]);setFrameIdx(-1);setResult(null);setMessage('');
   };
 
-  const interact = (r,c)=>{
+  const interact=(r,c)=>{
     if(isRunning)return;
     if(tool==='start'){setStart([r,c]);resetViz();return;}
     if(tool==='end')  {setEnd([r,c]);  resetViz();return;}
     if(r===start[0]&&c===start[1])return;
     if(r===end[0]  &&c===end[1])  return;
-    const g=grid.map(row=>row.map(cell=>({...cell}))); g[r][c].wall=(tool==='wall'); setGrid(g); resetViz();
+    const g=grid.map(row=>row.map(cell=>({...cell})));
+    const wasWall=g[r][c].wall; g[r][c].wall=(tool==='wall');
+    if(tool==='wall'&&!wasWall) SFX.wall();
+    setGrid(g);resetViz();
   };
 
-  const handleRun = ()=>{
-    resetViz();
-    const {frames:f,path,found}=runPathfinding(grid,start,end,algo==='astar');
+  const handleRun=()=>{
+    SFX.click();resetViz();
+    const{frames:f,path,found}=runPathfinding(grid,start,end,algo==='astar');
     setFrames(f);setResult({path,found});setFrameIdx(0);setIsRunning(true);
   };
 
-  const handleNewMaze = ()=>{ resetViz(); setGrid(generateMaze()); setStart([1,1]); setEnd([ROWS-2,COLS-2]); };
+  const handleNewMaze=()=>{SFX.click();resetViz();setGrid(generateMaze());setStart([1,1]);setEnd([ROWS-2,COLS-2]);};
 
   useEffect(()=>{
     if(!isRunning||!frames.length)return;
-    if(frameIdx>=frames.length-1){setIsRunning(false);setMessage(result&&result.found?'PATH FOUND!  ✓':'NO PATH EXISTS  ⛔');return;}
+    if(frameIdx>=frames.length-1){
+      setIsRunning(false);
+      const found=result&&result.found;
+      setMessage(found?'PATH FOUND!  ✓':'NO PATH EXISTS  ⛔');
+      if(found) SFX.pathFound(); else SFX.noPath();
+      return;
+    }
     timerRef.current=setTimeout(()=>setFrameIdx(p=>p+1),speed);
-    return ()=>clearTimeout(timerRef.current);
+    return()=>clearTimeout(timerRef.current);
   },[isRunning,frameIdx,frames,speed,result]);
 
   const visitedCount=frame?.visited?.size??0;
@@ -796,25 +821,26 @@ function PathfindingGame({onBack}) {
   return (
     <div className="game-container">
       <div className="game-header">
-        <button className="back-btn" onClick={onBack}>← BACK</button>
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
         <span className="section-title">🗺 DUNGEON ESCAPE</span>
+        <MuteBtn/>
       </div>
       <div className="path-layout">
         <div>
           <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center'}}>
             {[['astar','⭐ A*'],['dijkstra','🔵 DIJKSTRA']].map(([a,label])=>(
-              <button key={a} className={`algo-btn ${algo===a?'active':''}`} onClick={()=>{setAlgo(a);resetViz();}}>{label}</button>
+              <button key={a} className={`algo-btn ${algo===a?'active':''}`} onClick={()=>{SFX.click();setAlgo(a);resetViz();}}>{label}</button>
             ))}
             <button className="btn btn-green" onClick={handleRun}              disabled={isRunning}>▶ RUN</button>
-            <button className="btn btn-gray"  onClick={()=>setIsRunning(false)} disabled={!isRunning}>⏸ PAUSE</button>
+            <button className="btn btn-gray"  onClick={()=>{SFX.click();setIsRunning(false);}} disabled={!isRunning}>⏸ PAUSE</button>
             <button className="btn btn-cyan"  onClick={handleNewMaze}>🎲 NEW MAZE</button>
-            <button className="btn btn-red"   onClick={resetViz}>↺ RESET</button>
+            <button className="btn btn-red"   onClick={()=>{SFX.click();resetViz();}}>↺ RESET</button>
           </div>
 
           <div className="tool-select">
             <span style={{fontSize:9,color:'#555',alignSelf:'center',fontFamily:"'Press Start 2P',cursive"}}>TOOL:</span>
             {[['wall','🧱 WALL'],['erase','🧹 ERASE'],['start','🟢 START'],['end','🔴 END']].map(([t,label])=>(
-              <button key={t} className={`tool-btn ${tool===t?'active':''}`} onClick={()=>setTool(t)}>{label}</button>
+              <button key={t} className={`tool-btn ${tool===t?'active':''}`} onClick={()=>{SFX.click();setTool(t);}}>{label}</button>
             ))}
           </div>
 
@@ -905,13 +931,13 @@ function PathfindingGame({onBack}) {
   );
 }
 
-// ── APP ──
+// ── APP ───────────────────────────────────────────────────────────────────
 function App() {
   const [screen,   setScreen]   = useState('menu');
   const [levelKey, setLevelKey] = useState('medium');
-  if (screen==='sort')  return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
-  if (screen==='level') return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onBack={()=>setScreen('menu')}/>;
-  if (screen==='path')  return <PathfindingGame onBack={()=>setScreen('menu')}/>;
+  if(screen==='sort')  return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
+  if(screen==='level') return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onBack={()=>setScreen('menu')}/>;
+  if(screen==='path')  return <PathfindingGame onBack={()=>setScreen('menu')}/>;
   return <GameMenu onSelect={mode=>setScreen(mode==='sort'?'level':'path')}/>;
 }
 
