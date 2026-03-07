@@ -195,6 +195,44 @@
     .stack-item { padding:4px 7px; border-bottom:1px solid var(--bd); font-size:10px; font-family:'Courier New',monospace; color:var(--tx2); }
     .stack-item:first-child { color:var(--green); background:var(--green)12; }
 
+    /* PLANET BACKGROUNDS */
+    .planet-picker{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:8px 0;}
+    .planet-btn{width:46px;height:46px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;flex-shrink:0;}
+    .planet-btn:hover{transform:scale(1.2);box-shadow:0 0 18px currentColor;}
+    .planet-btn.active{border-color:#fff;box-shadow:0 0 22px #fff8;}
+
+    /* Spinning planet spheres (CSS 3D illusion via radial gradient + animation) */
+    @keyframes planetSpin{from{background-position:0% 50%;}to{background-position:200% 50%;}}
+    @keyframes moonSpin{from{background-position:0% 50%;}to{background-position:200% 50%;}}
+    @keyframes starFloat{0%,100%{opacity:0.6;}50%{opacity:1;}}
+
+    /* Stars canvas layer */
+    .stars-bg{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;}
+    .star-dot{position:absolute;border-radius:50%;background:#fff;animation:starFloat var(--dur,3s) var(--del,0s) ease-in-out infinite;}
+
+    /* Planet sphere (decorative 3D-ish) */
+    .planet-3d{position:fixed;bottom:-120px;right:-80px;width:340px;height:340px;border-radius:50%;z-index:-1;pointer-events:none;animation:planetSpin 20s linear infinite;background-size:400% 100%;}
+    .planet-ring{position:fixed;bottom:20px;right:-40px;width:420px;height:100px;border-radius:50%;border:18px solid;z-index:-1;pointer-events:none;transform:rotateX(75deg);opacity:0.55;}
+
+    /* Per-planet colors */
+    body[data-planet="moon"]   .planet-3d{background:radial-gradient(circle at 30% 40%,#e0e0e0,#888 40%,#555 70%,#333),linear-gradient(90deg,#999,#ccc,#aaa,#777,#bbb,#999);box-shadow:inset -30px -20px 60px #0006,0 0 60px #aaa4;}
+    body[data-planet="mars"]   .planet-3d{background:radial-gradient(circle at 30% 40%,#ff9966,#c0442a 40%,#8b2a14 70%,#5a1a08),linear-gradient(90deg,#c0442a,#e8663a,#aa3322,#dd5533,#bb4422,#c0442a);box-shadow:inset -30px -20px 60px #0008,0 0 80px #c0442a88;}
+    body[data-planet="jupiter"].planet-3d{background:radial-gradient(circle at 30% 40%,#ffe0b0,#d4a064 30%,#c8884a 60%,#8b5e30),linear-gradient(90deg,#c88840,#f0b870,#a86030,#e0a050,#b06820,#c88840);box-shadow:inset -30px -20px 60px #0008,0 0 80px #c8884a88;}
+    body[data-planet="saturn"] .planet-3d{background:radial-gradient(circle at 30% 40%,#f5e8c0,#d4b870 30%,#b89050 60%,#8b6830),linear-gradient(90deg,#c8a050,#e8d090,#a07838,#d4b068,#b08848,#c8a050);box-shadow:inset -30px -20px 60px #0008,0 0 80px #d4b07088;}
+    body[data-planet="saturn"] .planet-ring{border-color:#d4b070;display:block!important;}
+    body:not([data-planet="saturn"]) .planet-ring{display:none;}
+    body[data-planet="neptune"].planet-3d{background:radial-gradient(circle at 30% 40%,#88ccff,#2266cc 40%,#1144aa 70%,#0a2266),linear-gradient(90deg,#2266cc,#4488ee,#1144aa,#3377dd,#1a55bb,#2266cc);box-shadow:inset -30px -20px 60px #0008,0 0 80px #2266cc88;}
+    body[data-planet="earth"]  .planet-3d{background:radial-gradient(circle at 30% 40%,#66aaff,#2277cc 30%,#1a8844 55%,#116633),linear-gradient(90deg,#2277cc,#55aa55,#1a88cc,#44aa44,#3388cc,#2277cc);box-shadow:inset -30px -20px 60px #0008,0 0 80px #2277cc88;}
+
+    /* Background tint per planet */
+    body[data-planet="moon"]    {--bg0:#0a0a12;--bg1:#0e0e18;--bg2:#121220;--bg3:#1a1a28;}
+    body[data-planet="mars"]    {--bg0:#110500;--bg1:#1a0800;--bg2:#220b00;--bg3:#2e1000;}
+    body[data-planet="jupiter"] {--bg0:#0e0800;--bg1:#181000;--bg2:#201500;--bg3:#2c1c00;}
+    body[data-planet="saturn"]  {--bg0:#0e0b00;--bg1:#181200;--bg2:#201800;--bg3:#2c2200;}
+    body[data-planet="neptune"] {--bg0:#00050f;--bg1:#000818;--bg2:#000d22;--bg3:#00122e;}
+    body[data-planet="earth"]   {--bg0:#020a04;--bg1:#041208;--bg2:#061810;--bg3:#08201a;}
+    body[data-theme="light"][data-planet]{--bg0:#eef2f5;--bg1:#fff;--bg2:#e4eaf0;--bg3:#d4dde8;}
+
     /* MULTIPLAYER */
     .setup-container{display:flex;flex-direction:column;align-items:center;gap:28px;min-height:100vh;justify-content:center;padding:24px;}
     .player-inputs{display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;}
@@ -219,7 +257,7 @@ const { useState, useEffect, useRef, useCallback, createContext, useContext } = 
 // ── SOUND ENGINE ──────────────────────────────────────────────────────────
 let _audioCtx=null, _muted=localStorage.getItem('aq_muted')==='true';
 function getAC(){if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(_audioCtx.state==='suspended')_audioCtx.resume();return _audioCtx;}
-function tone(f,t,d,v=0.22,delay=0){if(_muted)return;try{const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type=t;o.frequency.setValueAtTime(f,ac.currentTime+delay);g.gain.setValueAtTime(v,ac.currentTime+delay);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+delay+d);o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+d+0.01);}catch(e){}}
+function tone(f,t,d,v=0.22,delay=0){if(_muted)return;if(!_musicStarted&&_musicOn){_musicStarted=true;setTimeout(startMusic,200);}try{const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type=t;o.frequency.setValueAtTime(f,ac.currentTime+delay);g.gain.setValueAtTime(v,ac.currentTime+delay);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+delay+d);o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+d+0.01);}catch(e){}}
 const SFX={
   click:    ()=>tone(900,'square',0.05,0.12),
   swap:     ()=>{tone(440,'square',0.07,0.18);tone(330,'square',0.07,0.18,0.08);},
@@ -235,7 +273,93 @@ const SFX={
   found:    ()=>{[[880,0],[1047,.12],[1319,.24]].forEach(([f,d])=>tone(f,'sine',0.15,0.25,d));},
   unlock:   ()=>{[523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,'sine',0.18,0.2,i*0.07));},
 };
-function toggleMute(){_muted=!_muted;localStorage.setItem('aq_muted',_muted);return _muted;}
+function toggleMute(){_muted=!_muted;localStorage.setItem('aq_muted',_muted);if(_muted)stopMusic();return _muted;}
+
+// ── 8-BIT BACKGROUND MUSIC ────────────────────────────────────────────────
+// Lookahead audio scheduler — schedules notes 300ms ahead, runs every 80ms
+let _musicOn=localStorage.getItem('aq_music')!=='false';
+let _musicTimer=null,_musicStarted=false;
+let _melIdx=0,_bassIdx=0,_nextMelT=0,_nextBasT=0;
+const _BPM=144,_B=60/_BPM;
+
+// All frequencies used (C major, pentatonic-friendly)
+const _F={r:0,
+  C4:262,D4:294,E4:330,F4:349,G4:392,A4:440,
+  C5:523,D5:587,E5:659,G5:784,A5:880,C6:1047};
+
+// 8-bar melody (32 beats total — loops seamlessly)
+const _MEL=[
+  // Bar 1 — E G A G E C (opens with upward run)
+  [_F.E5,.5],[_F.G5,.5],[_F.A5,1],[_F.G5,.5],[_F.E5,1],[_F.C5,.5],
+  // Bar 2 — D E G . E D
+  [_F.D5,.5],[_F.E5,.5],[_F.G5,1],[_F.r,.5],[_F.E5,.5],[_F.D5,1],
+  // Bar 3 — C E G A G E
+  [_F.C5,.5],[_F.E5,.5],[_F.G5,1],[_F.A5,.5],[_F.G5,.5],[_F.E5,1],
+  // Bar 4 — C-- D C .  (resolution phrase)
+  [_F.C5,2],[_F.D5,.5],[_F.C5,.5],[_F.r,1],
+  // Bar 5 — G A C6 A G E  (climbs to high C6)
+  [_F.G5,.5],[_F.A5,.5],[_F.C6,1],[_F.A5,.5],[_F.G5,.5],[_F.E5,1],
+  // Bar 6 — G E D E G A
+  [_F.G5,.5],[_F.E5,.5],[_F.D5,1],[_F.E5,.5],[_F.G5,.5],[_F.A5,1],
+  // Bar 7 — quick run: G E D E G A G
+  [_F.G5,.5],[_F.E5,.5],[_F.D5,.5],[_F.E5,.5],[_F.G5,.5],[_F.A5,.5],[_F.G5,1],
+  // Bar 8 — E D C--- (lands on C, loops back)
+  [_F.E5,.5],[_F.D5,.5],[_F.C5,3],
+];
+
+// Bass line (32 beats — C major I-V / vi-iii / I-IV / V-I cadence)
+const _BAS=[
+  [_F.C4,2],[_F.G4,2],  // I  V
+  [_F.A4,2],[_F.E4,2],  // vi iii
+  [_F.C4,2],[_F.F4,2],  // I  IV
+  [_F.G4,2],[_F.E4,2],  // V  iii
+  [_F.C4,2],[_F.A4,2],  // I  vi
+  [_F.G4,2],[_F.E4,2],  // V  iii
+  [_F.F4,2],[_F.G4,2],  // IV V
+  [_F.C4,4],            // I  (perfect cadence)
+];
+
+function _mNote(freq,start,dur,type,vol){
+  if(!freq)return;
+  try{
+    const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(0,start);
+    g.gain.linearRampToValueAtTime(vol,start+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur*0.82);
+    o.start(start);o.stop(start+dur);
+  }catch(e){}
+}
+
+function _sched(){
+  if(!_musicOn||_muted)return;
+  try{
+    const ac=getAC(),until=ac.currentTime+0.3;
+    while(_nextMelT<until){
+      const[f,b]=_MEL[_melIdx%_MEL.length];
+      _mNote(f,_nextMelT,b*_B*0.88,'square',0.07);
+      _nextMelT+=b*_B;_melIdx++;
+    }
+    while(_nextBasT<until){
+      const[f,b]=_BAS[_bassIdx%_BAS.length];
+      _mNote(f,_nextBasT,b*_B*0.72,'triangle',0.05);
+      _nextBasT+=b*_B;_bassIdx++;
+    }
+  }catch(e){}
+}
+
+function startMusic(){
+  if(!_musicOn||_musicTimer)return;
+  try{
+    const ac=getAC(),t=ac.currentTime+0.18;
+    _nextMelT=t;_nextBasT=t;_melIdx=0;_bassIdx=0;
+    _sched();
+    _musicTimer=setInterval(_sched,80);
+  }catch(e){}
+}
+function stopMusic(){if(_musicTimer){clearInterval(_musicTimer);_musicTimer=null;}}
+function toggleMusic(){_musicOn=!_musicOn;localStorage.setItem('aq_music',String(_musicOn));if(_musicOn)startMusic();else stopMusic();return _musicOn;}
 
 // ── THEME ─────────────────────────────────────────────────────────────────
 const ThemeCtx = createContext({theme:'dark',toggle:()=>{}});
@@ -355,11 +479,21 @@ function MuteBtn(){
   const[muted,setMuted]=useState(_muted);
   return <button className={`icon-btn${muted?' muted':''}`} onClick={()=>{const m=toggleMute();setMuted(m);}} title={muted?'Unmute':'Mute'}>{muted?'🔇':'🔊'}</button>;
 }
+function MusicBtn(){
+  const[on,setOn]=useState(_musicOn);
+  return(
+    <button className={`icon-btn${!on?' muted':''}`}
+      style={{fontSize:13}}
+      onClick={()=>{const m=toggleMusic();setOn(m);if(m&&!_musicStarted){_musicStarted=true;}}}
+      title={on?'Music ON (click to stop)':'Music OFF (click to play)'}
+    >{on?'🎵':'🎵'}<span style={{fontSize:7,marginLeft:3,fontFamily:"'Press Start 2P',cursive"}}>{on?'ON':'OFF'}</span></button>
+  );
+}
 function ThemeBtn(){
   const{theme,toggle}=useTheme();
   return <button className="icon-btn" onClick={()=>{SFX.click();toggle();}} title="Toggle theme">{theme==='dark'?'☀️':'🌙'}</button>;
 }
-function HeaderRight(){return <div className="header-right"><ThemeBtn/><MuteBtn/></div>;}
+function HeaderRight(){return <div className="header-right"><ThemeBtn/><MusicBtn/><MuteBtn/></div>;}
 
 function ResultsOverlay({stars,playerSwaps,optSwaps,timeS,timerOn,onRetry,onMenu,playerName,nextPlayerName,onNext}){
   const pct=optSwaps===0?100:Math.min(100,Math.round((optSwaps/playerSwaps)*100));
@@ -385,6 +519,67 @@ function ResultsOverlay({stars,playerSwaps,optSwaps,timeS,timerOn,onRetry,onMenu
           )}
           <button className="btn btn-gray" onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PLANET BACKGROUND SYSTEM ──────────────────────────────────────────────
+const PLANETS=[
+  {id:'space', emoji:'✨', label:'DEEP SPACE', color:'#8855ff'},
+  {id:'moon',  emoji:'🌕', label:'MOON',       color:'#cccccc'},
+  {id:'earth', emoji:'🌍', label:'EARTH',      color:'#2277cc'},
+  {id:'mars',  emoji:'🔴', label:'MARS',       color:'#c0442a'},
+  {id:'jupiter',emoji:'🟠',label:'JUPITER',   color:'#c88840'},
+  {id:'saturn',emoji:'🪐', label:'SATURN',     color:'#d4b070'},
+  {id:'neptune',emoji:'🔵',label:'NEPTUNE',   color:'#2266cc'},
+];
+
+let _planet=localStorage.getItem('aq_planet')||'space';
+function setPlanet(id){
+  _planet=id;localStorage.setItem('aq_planet',id);
+  document.body.setAttribute('data-planet',id);
+}
+// Apply on load
+document.body.setAttribute('data-planet',_planet);
+
+// Generate static starfield in DOM on load
+(function(){
+  const container=document.createElement('div');
+  container.className='stars-bg';
+  for(let i=0;i<120;i++){
+    const s=document.createElement('div');
+    const sz=Math.random()<0.15?2.5:Math.random()<0.4?1.5:1;
+    s.className='star-dot';
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:${0.3+Math.random()*0.7};--dur:${2+Math.random()*4}s;--del:${Math.random()*4}s;`;
+    container.appendChild(s);
+  }
+  document.body.prepend(container);
+  // Planet sphere
+  const sphere=document.createElement('div');
+  sphere.className='planet-3d';sphere.id='planetSphere';
+  document.body.appendChild(sphere);
+  // Saturn ring
+  const ring=document.createElement('div');
+  ring.className='planet-ring';ring.id='planetRing';
+  document.body.appendChild(ring);
+})();
+
+function PlanetPicker(){
+  const[cur,setCur]=useState(_planet);
+  return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+      <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx3)'}}>🌌 WORLD</div>
+      <div className="planet-picker">
+        {PLANETS.map(p=>(
+          <button key={p.id} className={`planet-btn${cur===p.id?' active':''}`}
+            title={p.label}
+            style={{background:`radial-gradient(circle at 35% 35%, ${p.color}cc, ${p.color}55 60%, ${p.color}22)`,color:p.color,border:`3px solid ${cur===p.id?'#fff':p.color+'55'}`}}
+            onClick={()=>{SFX.click();setPlanet(p.id);setCur(p.id);}}
+          >
+            <span style={{fontSize:20,lineHeight:'40px'}}>{p.emoji}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -485,8 +680,9 @@ function GameMenu({onSelect}){
           </div>
         ))}
       </div>
-      <div style={{display:'flex',gap:10,alignItems:'center'}}>
-        <ThemeBtn/><MuteBtn/>
+      <PlanetPicker/>
+      <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+        <ThemeBtn/><MusicBtn/><MuteBtn/>
         <span style={{color:'var(--tx4)',fontSize:8,fontFamily:"'Press Start 2P',cursive"}}>LEARN CS THROUGH PLAY</span>
       </div>
     </div>
