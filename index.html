@@ -228,6 +228,25 @@
     body[data-planet="neptune"] {--bg0:#00040f;--bg1:#000618;--bg2:#00091f;--bg3:#000d2a;}
     body[data-theme="light"][data-planet]{--bg0:#eef2f5;--bg1:#fff;--bg2:#e4eaf0;--bg3:#d4dde8;}
 
+    /* PENGUIN MASCOT */
+    .penguin-wrap{position:fixed;bottom:18px;left:18px;z-index:150;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;}
+    .penguin-emoji{font-size:52px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6));transition:filter 0.2s;animation:penguinBob 2.4s ease-in-out infinite;}
+    .penguin-emoji:hover{filter:drop-shadow(0 4px 18px #00ff8888) brightness(1.1);}
+    .penguin-emoji.excited{animation:penguinExcited 0.7s ease-in-out;}
+    .penguin-name{font-family:'Press Start 2P',cursive;font-size:5px;color:var(--cyan);margin-top:3px;text-shadow:0 0 8px var(--cyan)88;letter-spacing:1px;}
+    @keyframes penguinBob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
+    @keyframes penguinExcited{0%{transform:scale(1) rotate(0);}20%{transform:scale(1.38) rotate(-16deg);}40%{transform:scale(1.12) rotate(14deg);}60%{transform:scale(1.28) rotate(-11deg);}80%{transform:scale(1.08) rotate(8deg);}100%{transform:scale(1) rotate(0);}}
+    .penguin-bubble{position:absolute;bottom:88px;left:0;width:262px;background:var(--bg1);border:2px solid var(--green);border-radius:14px;padding:14px 14px 11px;box-shadow:0 0 28px var(--green)44;animation:pBubblePop 0.22s cubic-bezier(0.34,1.56,0.64,1);z-index:1;}
+    .penguin-bubble::after{content:'';position:absolute;bottom:-11px;left:26px;border:11px solid transparent;border-top-color:var(--green);}
+    .penguin-bubble-text{font-size:10px;color:var(--tx);line-height:1.9;margin-bottom:10px;}
+    .penguin-hints-row{display:flex;align-items:center;gap:5px;font-family:'Press Start 2P',cursive;font-size:6px;color:var(--tx3);}
+    .penguin-pip{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid var(--bd2);margin-right:1px;transition:background 0.3s;}
+    .penguin-close{position:absolute;top:4px;right:8px;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;padding:2px 6px;line-height:1;transition:color 0.15s;}
+    .penguin-close:hover{color:var(--tx);}
+    .penguin-cheer{position:absolute;bottom:88px;left:0;width:195px;background:var(--bg1);border:2px solid #ffdd00;border-radius:12px;padding:10px 13px;font-family:'Press Start 2P',cursive;font-size:8px;color:#ffdd00;line-height:1.75;box-shadow:0 0 18px #ffdd0044;animation:pBubblePop 0.22s cubic-bezier(0.34,1.56,0.64,1),pCheerFade 0.5s ease-out 2.8s forwards;z-index:1;}
+    @keyframes pBubblePop{from{transform:scale(0.55) translateY(16px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+    @keyframes pCheerFade{to{opacity:0;transform:translateY(-14px);}}
+
     /* MULTIPLAYER */
     .setup-container{display:flex;flex-direction:column;align-items:center;gap:28px;min-height:100vh;justify-content:center;padding:24px;}
     .player-inputs{display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;}
@@ -709,6 +728,111 @@ function MultiResults({results,onPlayAgain,onMenu}){
           <button className="btn btn-gray"  onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── PENGUIN MASCOT ────────────────────────────────────────────────────────
+const PENGUIN_HINTS={
+  menu:[
+    "Hi! I'm PINGU! 🐧 Tap me any time for hints!\n\nStart with MONSTER SORTER — drag creatures into HP order and learn sorting step by step!",
+    "⚔ VS MODE lets up to 4 friends compete on the same device! Everyone sorts the SAME monsters — lowest swaps wins!",
+    "Complete all 4 modes to master algorithms: Sorting · Pathfinding · Binary Search · Graph Traversal. You've got this! 🏆",
+  ],
+  sort:[
+    "See the YELLOW GLOW? That's the single best swap right now!\n\nFollow hint swaps in a row → you'll build a COMBO multiplier! 💡🔥",
+    "PAR = the INVERSION COUNT — the theoretical minimum swaps to sort this array.\n\nHit ≤ 130% of PAR for 3 stars ⭐⭐⭐. Hit ≤ 200% for 2 stars!",
+    "In WATCH mode try QUICK SORT ⚡ — watch the yellow PIVOT partition the array! It's O(n log n) average and blazing fast in practice.",
+  ],
+  path:[
+    "A* uses f(n) = g + h.\ng = steps taken from start.\nh = Manhattan distance to the goal.\nThat heuristic is why A* visits WAY fewer nodes than Dijkstra! ⭐",
+    "🧱 Paint walls with the Wall tool, then hit ▶ RUN. Try completely blocking a direct path — watch A* reroute around it!",
+    "Switch between A* and DIJKSTRA on the exact same maze and compare the BLUE visited nodes. A* explores far fewer — that's the power of a heuristic! 🔵",
+  ],
+  bsearch:[
+    "Pick any number, then watch LO · MID · HI close in.\n\nThe array is SORTED so binary search cuts the search space in HALF every single step — O(log n)! 🔍",
+    "With 16 numbers, binary search needs at most 4 steps:\nlog₂(16) = 4 ✨\n\nWith 1 million numbers it only needs 20 steps. That's the magic!",
+    "Gray numbers are ELIMINATED forever — binary search never revisits them.\n\nTry picking the LAST number in the array to see the most steps! 🎯",
+  ],
+  graph:[
+    "BFS uses a QUEUE 🌊 — it visits ALL nodes one hop away before moving further. Pick node A and watch it sweep outward level by level!",
+    "DFS uses a STACK 🔽 — it dives as DEEP as possible before backtracking. Start from A with DFS and see it reach H before visiting nearby nodes!",
+    "Click a LEAF node like H, I, or J as the start, then compare BFS vs DFS. The traversal order is completely different — same graph, different algorithms! 🕸️",
+  ],
+};
+const PENGUIN_CHEERS={
+  sort:["You're on fire! 🔥","Follow the glow! 💛","COMBO time! 🎯","Swap swap swap! 🐧","So close to sorted! ⭐","Great moves! 💪"],
+  path:["Find that path! 🗺️","Paint those walls! 🧱","A* believes in you! ⭐","Keep exploring! 🐧","Almost there! ✨"],
+  bsearch:["Slice it in half! ✂️","Binary is FAST! ⚡","Log n is tiny! 🎯","Narrowing down! 🔍","Great pick! 🐧"],
+  graph:["Explore them all! 🕸️","Graph master! 🌊","Deep dive ahead! 🔽","Visit every node! ✅","You've got this! 🐧"],
+  menu:["Let's learn algorithms! 📚","Pick a mode! 🎮","Waddle into learning! 🐧","Challenge yourself! 🏆"],
+};
+
+function Penguin({gameMode}){
+  const[open,setOpen]=useState(false);
+  const[hintsUsed,setHintsUsed]=useState(0);
+  const[message,setMessage]=useState('');
+  const[excited,setExcited]=useState(false);
+  const[cheer,setCheer]=useState('');
+  const[cheerKey,setCheerKey]=useState(0);
+  const excRef=useRef(null),cheerRef=useRef(null);
+
+  const excite=()=>{setExcited(true);if(excRef.current)clearTimeout(excRef.current);excRef.current=setTimeout(()=>setExcited(false),720);};
+
+  // Random cheer on a timer while playing
+  useEffect(()=>{
+    if(gameMode==='menu')return;
+    const schedule=()=>{
+      cheerRef.current=setTimeout(()=>{
+        const list=PENGUIN_CHEERS[gameMode]||PENGUIN_CHEERS.menu;
+        setCheer(list[Math.floor(Math.random()*list.length)]);
+        setCheerKey(k=>k+1);
+        excite();
+        setTimeout(()=>setCheer(''),3300);
+        schedule();
+      },32000+Math.random()*22000);
+    };
+    schedule();
+    return()=>{clearTimeout(cheerRef.current);};
+  },[gameMode]);
+
+  const ask=()=>{
+    SFX.click();
+    const hints=PENGUIN_HINTS[gameMode]||PENGUIN_HINTS.menu;
+    if(hintsUsed>=3){
+      setMessage("I'm all out of hints — but I totally BELIEVE in you! You've got this, champion! 🐧💪");
+    }else{
+      setMessage(hints[hintsUsed]);
+      setHintsUsed(h=>h+1);
+    }
+    excite();
+    setOpen(true);
+    setCheer('');
+  };
+
+  const pipsLeft=Math.max(0,3-hintsUsed);
+
+  return(
+    <div className="penguin-wrap">
+      {open&&(
+        <div className="penguin-bubble">
+          <button className="penguin-close" onClick={e=>{e.stopPropagation();setOpen(false);SFX.click();}}>×</button>
+          <div className="penguin-bubble-text">{message}</div>
+          <div className="penguin-hints-row">
+            {[0,1,2].map(i=>(
+              <span key={i} className="penguin-pip" style={{background:i<pipsLeft?'var(--green)':'var(--bg4)'}}/>
+            ))}
+            <span style={{marginLeft:4}}>{pipsLeft>0?`${pipsLeft} hint${pipsLeft!==1?'s':''} left`:'No hints left!'}</span>
+          </div>
+        </div>
+      )}
+      {cheer&&!open&&(
+        <div className="penguin-cheer" key={cheerKey}>{cheer}</div>
+      )}
+      <div className={`penguin-emoji${excited?' excited':''}`} onClick={ask} title="Click me for hints! 🐧">
+        🐧
+      </div>
+      <div className="penguin-name">PINGU</div>
     </div>
   );
 }
@@ -1525,23 +1649,22 @@ function App(){
   };
   const quitMulti=()=>{setMultiPlayers(null);setMultiSnap(null);setMultiResults([]);setMultiPlayerIdx(0);setScreen('menu');};
 
-  if(screen==='setup')        return <MultiSetup levelKey={levelKey} onStart={startMulti} onBack={()=>setScreen('level')}/>;
-  if(screen==='multi-results') return <MultiResults results={multiResults} onPlayAgain={()=>{setMultiPlayerIdx(0);setMultiResults([]);setMultiSnap(generateMonsters(levelKey));setScreen('sort');}} onMenu={quitMulti}/>;
-  if(screen==='sort'){
-    if(multiPlayers){
-      return <SortingGame key={`mp-${multiPlayerIdx}`} levelKey={levelKey}
-        onBack={()=>setScreen('setup')} onMenu={quitMulti}
-        initialMonsters={multiSnap} multiPlayers={multiPlayers} multiPlayerIdx={multiPlayerIdx}
-        onPlayerDone={handlePlayerDone}
-      />;
+  const penguinMode={sort:'sort',level:'sort',setup:'sort','multi-results':'sort',path:'path',bsearch:'bsearch',graph:'graph'}[screen]||'menu';
+
+  const CurrentScreen=()=>{
+    if(screen==='setup')         return <MultiSetup levelKey={levelKey} onStart={startMulti} onBack={()=>setScreen('level')}/>;
+    if(screen==='multi-results') return <MultiResults results={multiResults} onPlayAgain={()=>{setMultiPlayerIdx(0);setMultiResults([]);setMultiSnap(generateMonsters(levelKey));setScreen('sort');}} onMenu={quitMulti}/>;
+    if(screen==='sort'){
+      if(multiPlayers) return <SortingGame key={`mp-${multiPlayerIdx}`} levelKey={levelKey} onBack={()=>setScreen('setup')} onMenu={quitMulti} initialMonsters={multiSnap} multiPlayers={multiPlayers} multiPlayerIdx={multiPlayerIdx} onPlayerDone={handlePlayerDone}/>;
+      return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
     }
-    return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
-  }
-  if(screen==='level')   return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onMulti={k=>{setLevelKey(k);setScreen('setup');}} onBack={()=>setScreen('menu')}/>;
-  if(screen==='path')    return <PathfindingGame onBack={()=>setScreen('menu')}/>;
-  if(screen==='bsearch') return <BinarySearchGame onBack={()=>setScreen('menu')}/>;
-  if(screen==='graph')   return <GraphGame onBack={()=>setScreen('menu')}/>;
-  return <GameMenu onSelect={mode=>setScreen(mode==='sort'?'level':mode)}/>;
+    if(screen==='level')   return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onMulti={k=>{setLevelKey(k);setScreen('setup');}} onBack={()=>setScreen('menu')}/>;
+    if(screen==='path')    return <PathfindingGame onBack={()=>setScreen('menu')}/>;
+    if(screen==='bsearch') return <BinarySearchGame onBack={()=>setScreen('menu')}/>;
+    if(screen==='graph')   return <GraphGame onBack={()=>setScreen('menu')}/>;
+    return <GameMenu onSelect={mode=>setScreen(mode==='sort'?'level':mode)}/>;
+  };
+  return <><CurrentScreen/><Penguin key={penguinMode} gameMode={penguinMode}/></>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
