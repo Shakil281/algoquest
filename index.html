@@ -196,41 +196,36 @@
     .stack-item:first-child { color:var(--green); background:var(--green)12; }
 
     /* PLANET BACKGROUNDS */
-    .planet-picker{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:8px 0;}
-    .planet-btn{width:46px;height:46px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;flex-shrink:0;}
-    .planet-btn:hover{transform:scale(1.2);box-shadow:0 0 18px currentColor;}
-    .planet-btn.active{border-color:#fff;box-shadow:0 0 22px #fff8;}
+    .planet-picker{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:8px 0;}
 
-    /* Spinning planet spheres (CSS 3D illusion via radial gradient + animation) */
-    @keyframes planetSpin{from{background-position:0% 50%;}to{background-position:200% 50%;}}
-    @keyframes moonSpin{from{background-position:0% 50%;}to{background-position:200% 50%;}}
-    @keyframes starFloat{0%,100%{opacity:0.6;}50%{opacity:1;}}
+    /* Keyframes */
+    @keyframes rotateSurface{from{transform:translateX(0);}to{transform:translateX(-33.333%);}}
+    @keyframes starFloat{0%,100%{opacity:0.4;}50%{opacity:1;}}
+    @keyframes atmoPulse{0%,100%{opacity:0.7;}50%{opacity:1;}}
 
-    /* Stars canvas layer */
-    .stars-bg{position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;}
+    /* Stars */
+    .stars-bg{position:fixed;inset:0;z-index:-3;pointer-events:none;overflow:hidden;}
     .star-dot{position:absolute;border-radius:50%;background:#fff;animation:starFloat var(--dur,3s) var(--del,0s) ease-in-out infinite;}
 
-    /* Planet sphere (decorative 3D-ish) */
-    .planet-3d{position:fixed;bottom:-120px;right:-80px;width:340px;height:340px;border-radius:50%;z-index:-1;pointer-events:none;animation:planetSpin 20s linear infinite;background-size:400% 100%;}
-    .planet-ring{position:fixed;bottom:20px;right:-40px;width:420px;height:100px;border-radius:50%;border:18px solid;z-index:-1;pointer-events:none;transform:rotateX(75deg);opacity:0.55;}
-
-    /* Per-planet colors */
-    body[data-planet="moon"]   .planet-3d{background:radial-gradient(circle at 30% 40%,#e0e0e0,#888 40%,#555 70%,#333),linear-gradient(90deg,#999,#ccc,#aaa,#777,#bbb,#999);box-shadow:inset -30px -20px 60px #0006,0 0 60px #aaa4;}
-    body[data-planet="mars"]   .planet-3d{background:radial-gradient(circle at 30% 40%,#ff9966,#c0442a 40%,#8b2a14 70%,#5a1a08),linear-gradient(90deg,#c0442a,#e8663a,#aa3322,#dd5533,#bb4422,#c0442a);box-shadow:inset -30px -20px 60px #0008,0 0 80px #c0442a88;}
-    body[data-planet="jupiter"].planet-3d{background:radial-gradient(circle at 30% 40%,#ffe0b0,#d4a064 30%,#c8884a 60%,#8b5e30),linear-gradient(90deg,#c88840,#f0b870,#a86030,#e0a050,#b06820,#c88840);box-shadow:inset -30px -20px 60px #0008,0 0 80px #c8884a88;}
-    body[data-planet="saturn"] .planet-3d{background:radial-gradient(circle at 30% 40%,#f5e8c0,#d4b870 30%,#b89050 60%,#8b6830),linear-gradient(90deg,#c8a050,#e8d090,#a07838,#d4b068,#b08848,#c8a050);box-shadow:inset -30px -20px 60px #0008,0 0 80px #d4b07088;}
-    body[data-planet="saturn"] .planet-ring{border-color:#d4b070;display:block!important;}
-    body:not([data-planet="saturn"]) .planet-ring{display:none;}
-    body[data-planet="neptune"].planet-3d{background:radial-gradient(circle at 30% 40%,#88ccff,#2266cc 40%,#1144aa 70%,#0a2266),linear-gradient(90deg,#2266cc,#4488ee,#1144aa,#3377dd,#1a55bb,#2266cc);box-shadow:inset -30px -20px 60px #0008,0 0 80px #2266cc88;}
-    body[data-planet="earth"]  .planet-3d{background:radial-gradient(circle at 30% 40%,#66aaff,#2277cc 30%,#1a8844 55%,#116633),linear-gradient(90deg,#2277cc,#55aa55,#1a88cc,#44aa44,#3388cc,#2277cc);box-shadow:inset -30px -20px 60px #0008,0 0 80px #2277cc88;}
+    /* Background planet — layered structure */
+    .planet-outer{position:fixed;bottom:-110px;right:-80px;width:380px;height:380px;z-index:-1;pointer-events:none;}
+    .planet-globe{position:absolute;inset:0;border-radius:50%;overflow:hidden;}
+    /* The surface div is 300% wide; translateX(-33.333%) = one full sphere width = seamless loop */
+    .planet-surface{position:absolute;width:300%;height:100%;top:0;left:0;background-repeat:repeat-x;background-size:33.333% 100%;animation:rotateSurface 20s linear infinite;}
+    /* Night-side shading — makes it look 3D */
+    .planet-shade{position:absolute;inset:0;background:radial-gradient(circle at 66% 36%, transparent 12%, rgba(0,0,0,0.22) 48%, rgba(0,0,0,0.82) 100%);}
+    /* Atmospheric glow ring (sits outside the clipped globe) */
+    .planet-atmo{position:absolute;inset:-16px;border-radius:50%;pointer-events:none;animation:atmoPulse 4s ease-in-out infinite;}
+    /* Saturn ring */
+    .planet-ring{position:absolute;width:136%;height:36%;border-radius:50%;border:16px solid;top:32%;left:-18%;pointer-events:none;transform:rotateX(72deg);display:none;z-index:1;}
 
     /* Background tint per planet */
-    body[data-planet="moon"]    {--bg0:#0a0a12;--bg1:#0e0e18;--bg2:#121220;--bg3:#1a1a28;}
-    body[data-planet="mars"]    {--bg0:#110500;--bg1:#1a0800;--bg2:#220b00;--bg3:#2e1000;}
-    body[data-planet="jupiter"] {--bg0:#0e0800;--bg1:#181000;--bg2:#201500;--bg3:#2c1c00;}
-    body[data-planet="saturn"]  {--bg0:#0e0b00;--bg1:#181200;--bg2:#201800;--bg3:#2c2200;}
-    body[data-planet="neptune"] {--bg0:#00050f;--bg1:#000818;--bg2:#000d22;--bg3:#00122e;}
-    body[data-planet="earth"]   {--bg0:#020a04;--bg1:#041208;--bg2:#061810;--bg3:#08201a;}
+    body[data-planet="moon"]    {--bg0:#080910;--bg1:#0c0d18;--bg2:#101120;--bg3:#181929;}
+    body[data-planet="earth"]   {--bg0:#010d04;--bg1:#021508;--bg2:#031d0c;--bg3:#052614;}
+    body[data-planet="mars"]    {--bg0:#0f0300;--bg1:#180500;--bg2:#200700;--bg3:#2c0a00;}
+    body[data-planet="jupiter"] {--bg0:#0c0700;--bg1:#150e00;--bg2:#1c1400;--bg3:#261b00;}
+    body[data-planet="saturn"]  {--bg0:#0c0900;--bg1:#141100;--bg2:#1c1800;--bg3:#242100;}
+    body[data-planet="neptune"] {--bg0:#00040f;--bg1:#000618;--bg2:#00091f;--bg3:#000d2a;}
     body[data-theme="light"][data-planet]{--bg0:#eef2f5;--bg1:#fff;--bg2:#e4eaf0;--bg3:#d4dde8;}
 
     /* MULTIPLAYER */
@@ -525,61 +520,124 @@ function ResultsOverlay({stars,playerSwaps,optSwaps,timeS,timerOn,onRetry,onMenu
 }
 
 // ── PLANET BACKGROUND SYSTEM ──────────────────────────────────────────────
+// Surface gradients: each uses a diagonal angle so bands are visible when scrolled.
+// width:300% + translateX(-33.333%) + background-size:33.333% = seamless 1-sphere loop.
+const PLANET_STYLES={
+  space:  {surf:'radial-gradient(circle at 38% 38%,#221133,#0a0812)',glow:'none',rot:'0s',ring:false},
+  moon:   {surf:'repeating-linear-gradient(168deg,#e0e0e0 0%,#e0e0e0 10%,#a8a8a8 10%,#a8a8a8 22%,#d0d0d0 22%,#d0d0d0 34%,#909090 34%,#909090 46%,#c8c8c8 46%,#c8c8c8 58%,#e8e8e8 58%,#e8e8e8 70%,#b8b8b8 70%,#b8b8b8 82%,#a0a0a0 82%,#a0a0a0 100%)',glow:'rgba(190,190,210,0.35)',rot:'26s',ring:false},
+  earth:  {surf:'repeating-linear-gradient(168deg,#1a88cc 0%,#1a88cc 14%,#2a9932 14%,#2a9932 26%,#1677bb 26%,#1677bb 40%,#44aa55 40%,#44aa55 52%,#2288ee 52%,#2288ee 64%,#228833 64%,#228833 76%,#55bb66 76%,#55bb66 88%,#1a88cc 88%,#1a88cc 100%)',glow:'rgba(30,130,220,0.4)',rot:'20s',ring:false},
+  mars:   {surf:'repeating-linear-gradient(168deg,#c04028 0%,#c04028 14%,#dd6640 14%,#dd6640 28%,#a82e1e 28%,#a82e1e 42%,#ee7740 42%,#ee7740 56%,#b83d2c 56%,#b83d2c 70%,#cc5535 70%,#cc5535 84%,#c04028 84%,#c04028 100%)',glow:'rgba(192,60,36,0.45)',rot:'19s',ring:false},
+  jupiter:{surf:'repeating-linear-gradient(176deg,#f0c880 0%,#f0c880 10%,#c88040 10%,#c88040 20%,#e8a850 20%,#e8a850 30%,#a06030 30%,#a06030 40%,#f0d090 40%,#f0d090 50%,#c07030 50%,#c07030 60%,#e8b060 60%,#e8b060 70%,#d09050 70%,#d09050 80%,#f0c880 80%,#f0c880 100%)',glow:'rgba(200,132,60,0.42)',rot:'10s',ring:false},
+  saturn: {surf:'repeating-linear-gradient(176deg,#f5e8b8 0%,#f5e8b8 14%,#d4b870 14%,#d4b870 28%,#ede0a0 28%,#ede0a0 42%,#c8a858 42%,#c8a858 56%,#f0d890 56%,#f0d890 70%,#d0b060 70%,#d0b060 84%,#f5e8b8 84%,#f5e8b8 100%)',glow:'rgba(210,180,100,0.42)',rot:'12s',ring:true,ringColor:'#c8a04888'},
+  neptune:{surf:'repeating-linear-gradient(172deg,#1133aa 0%,#1133aa 18%,#2255cc 18%,#2255cc 35%,#3377dd 35%,#3377dd 50%,#1a44bb 50%,#1a44bb 65%,#4488ee 65%,#4488ee 80%,#2266cc 80%,#2266cc 100%)',glow:'rgba(32,96,200,0.42)',rot:'17s',ring:false},
+};
 const PLANETS=[
-  {id:'space', emoji:'✨', label:'DEEP SPACE', color:'#8855ff'},
-  {id:'moon',  emoji:'🌕', label:'MOON',       color:'#cccccc'},
-  {id:'earth', emoji:'🌍', label:'EARTH',      color:'#2277cc'},
-  {id:'mars',  emoji:'🔴', label:'MARS',       color:'#c0442a'},
-  {id:'jupiter',emoji:'🟠',label:'JUPITER',   color:'#c88840'},
-  {id:'saturn',emoji:'🪐', label:'SATURN',     color:'#d4b070'},
-  {id:'neptune',emoji:'🔵',label:'NEPTUNE',   color:'#2266cc'},
+  {id:'space',  label:'DEEP SPACE', color:'#8855ff'},
+  {id:'moon',   label:'MOON',       color:'#cccccc'},
+  {id:'earth',  label:'EARTH',      color:'#2277cc'},
+  {id:'mars',   label:'MARS',       color:'#c0442a'},
+  {id:'jupiter',label:'JUPITER',    color:'#c88840'},
+  {id:'saturn', label:'SATURN',     color:'#d4b070'},
+  {id:'neptune',label:'NEPTUNE',    color:'#2266cc'},
 ];
 
 let _planet=localStorage.getItem('aq_planet')||'space';
 function setPlanet(id){
   _planet=id;localStorage.setItem('aq_planet',id);
   document.body.setAttribute('data-planet',id);
+  const d=PLANET_STYLES[id]||PLANET_STYLES.space;
+  const outer=document.getElementById('planetOuter');
+  const surf=document.getElementById('planetSurface');
+  const atmo=document.getElementById('planetAtmo');
+  const ring=document.getElementById('planetRing');
+  if(outer)outer.style.display=id==='space'?'none':'block';
+  if(surf){surf.style.background=d.surf;surf.style.animationDuration=d.rot;surf.style.animationPlayState=d.rot==='0s'?'paused':'running';}
+  if(atmo)atmo.style.boxShadow=d.glow!=='none'?`0 0 50px 25px ${d.glow}`:'none';
+  if(ring){ring.style.display=d.ring?'block':'none';if(d.ring)ring.style.borderColor=d.ringColor||'#c8a04888';}
 }
-// Apply on load
-document.body.setAttribute('data-planet',_planet);
 
-// Generate static starfield in DOM on load
+// Generate starfield + planet DOM on load
 (function(){
-  const container=document.createElement('div');
-  container.className='stars-bg';
-  for(let i=0;i<120;i++){
-    const s=document.createElement('div');
-    const sz=Math.random()<0.15?2.5:Math.random()<0.4?1.5:1;
+  // Stars
+  const sb=document.createElement('div');sb.className='stars-bg';
+  for(let i=0;i<140;i++){
+    const s=document.createElement('div'),sz=Math.random()<0.12?3:Math.random()<0.35?1.8:1;
     s.className='star-dot';
-    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:${0.3+Math.random()*0.7};--dur:${2+Math.random()*4}s;--del:${Math.random()*4}s;`;
-    container.appendChild(s);
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:${0.25+Math.random()*0.75};--dur:${2+Math.random()*5}s;--del:${Math.random()*5}s;`;
+    sb.appendChild(s);
   }
-  document.body.prepend(container);
-  // Planet sphere
-  const sphere=document.createElement('div');
-  sphere.className='planet-3d';sphere.id='planetSphere';
-  document.body.appendChild(sphere);
-  // Saturn ring
-  const ring=document.createElement('div');
-  ring.className='planet-ring';ring.id='planetRing';
-  document.body.appendChild(ring);
+  document.body.prepend(sb);
+  // Planet: outer container → atmosphere + globe(surface+shade) + ring
+  const outer=document.createElement('div');outer.className='planet-outer';outer.id='planetOuter';outer.style.display='none';
+  const atmo=document.createElement('div');atmo.className='planet-atmo';atmo.id='planetAtmo';
+  const globe=document.createElement('div');globe.className='planet-globe';
+  const surf=document.createElement('div');surf.className='planet-surface';surf.id='planetSurface';
+  const shade=document.createElement('div');shade.className='planet-shade';
+  const ring=document.createElement('div');ring.className='planet-ring';ring.id='planetRing';
+  globe.appendChild(surf);globe.appendChild(shade);
+  outer.appendChild(atmo);outer.appendChild(globe);outer.appendChild(ring);
+  document.body.appendChild(outer);
+  // Apply saved planet
+  setPlanet(_planet);
 })();
 
 function PlanetPicker(){
   const[cur,setCur]=useState(_planet);
+  const pick=(id)=>{SFX.click();setPlanet(id);setCur(id);};
   return(
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
-      <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx3)'}}>🌌 WORLD</div>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+      <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx3)'}}>🌌 CHOOSE YOUR WORLD</div>
       <div className="planet-picker">
-        {PLANETS.map(p=>(
-          <button key={p.id} className={`planet-btn${cur===p.id?' active':''}`}
-            title={p.label}
-            style={{background:`radial-gradient(circle at 35% 35%, ${p.color}cc, ${p.color}55 60%, ${p.color}22)`,color:p.color,border:`3px solid ${cur===p.id?'#fff':p.color+'55'}`}}
-            onClick={()=>{SFX.click();setPlanet(p.id);setCur(p.id);}}
-          >
-            <span style={{fontSize:20,lineHeight:'40px'}}>{p.emoji}</span>
-          </button>
-        ))}
+        {PLANETS.map(p=>{
+          const d=PLANET_STYLES[p.id];
+          const active=cur===p.id;
+          const isSpace=p.id==='space';
+          return(
+            <div key={p.id} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer'}} onClick={()=>pick(p.id)}>
+              {/* Planet sphere */}
+              <div style={{position:'relative',width:54,height:54,flexShrink:0}}>
+                {/* Atmosphere glow */}
+                {!isSpace&&<div style={{position:'absolute',inset:-6,borderRadius:'50%',boxShadow:active?`0 0 20px 10px ${p.color}88`:`0 0 10px 4px ${p.color}44`,transition:'all 0.3s'}}/>}
+                {/* Globe (clipped) */}
+                <div style={{
+                  position:'absolute',inset:0,borderRadius:'50%',overflow:'hidden',
+                  border:`3px solid ${active?'#fff':p.color+'55'}`,
+                  transform:active?'scale(1.14)':'scale(1)',
+                  transition:'all 0.25s',
+                  boxShadow:active?`0 0 0 2px ${p.color}`:'none',
+                }}>
+                  {/* Rotating surface */}
+                  <div style={{
+                    position:'absolute',width:'300%',height:'100%',top:0,left:0,
+                    background:d.surf,backgroundRepeat:'repeat-x',backgroundSize:'33.333% 100%',
+                    animation:!isSpace?`rotateSurface ${parseInt(d.rot)*0.55}s linear infinite`:'none',
+                  }}/>
+                  {/* 3D shading overlay */}
+                  <div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 64% 34%, transparent 12%, rgba(0,0,0,0.28) 52%, rgba(0,0,0,0.82) 100%)'}}/>
+                </div>
+                {/* Saturn ring (outside clip) */}
+                {p.id==='saturn'&&(
+                  <div style={{
+                    position:'absolute',width:'148%',height:'40%',borderRadius:'50%',
+                    border:`5px solid ${active?'#d4b070aa':'#d4b07066'}`,
+                    top:'30%',left:'-24%',transform:'rotateX(70deg)',pointerEvents:'none',zIndex:2,
+                    transition:'border-color 0.3s',
+                  }}/>
+                )}
+                {/* Deep space starfield preview */}
+                {isSpace&&(
+                  <div style={{position:'absolute',inset:0,borderRadius:'50%',overflow:'hidden',border:`3px solid ${active?'#fff':'#8855ff55'}`,transform:active?'scale(1.14)':'scale(1)',transition:'all 0.25s',background:'radial-gradient(circle at 38% 38%,#2a1155,#0a0812)'}}>
+                    {[...Array(12)].map((_,i)=><div key={i} style={{position:'absolute',width:i%3===0?2:1,height:i%3===0?2:1,borderRadius:'50%',background:'#fff',left:`${(i*37)%90+5}%`,top:`${(i*53)%90+5}%`,opacity:0.5+Math.random()*0.5}}/>)}
+                  </div>
+                )}
+              </div>
+              {/* Planet name */}
+              <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:5,color:active?p.color:'var(--tx3)',textAlign:'center',lineHeight:1.5,textShadow:active?`0 0 8px ${p.color}88`:'none',transition:'all 0.2s',letterSpacing:'0.5px'}}>
+                {p.label}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
