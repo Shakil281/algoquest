@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlgoQuest — Algorithm Visualization Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    /* ── THEME VARIABLES ── */
+    :root {
+      --bg0:#07070f; --bg1:#0b0b18; --bg2:#0e0e1e; --bg3:#14142a; --bg4:#1e1e32;
+      --bd:#222; --bd2:#333; --bd3:#1e1e32;
+      --tx:#e0e0e0; --tx2:#888; --tx3:#555; --tx4:#444;
+      --green:#00ff88; --cyan:#00ffff; --scanline:rgba(0,255,128,0.012);
+    }
+    [data-theme="light"] {
+      --bg0:#eef2f5; --bg1:#ffffff; --bg2:#e4eaf0; --bg3:#d4dde8; --bg4:#c4d0dc;
+      --bd:#b0bfc8; --bd2:#90a8b8; --bd3:#c0cdd8;
+      --tx:#1a2535; --tx2:#4a6070; --tx3:#607888; --tx4:#7890a0;
+      --green:#00b060; --cyan:#0099bb; --scanline:rgba(0,0,0,0.008);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg0); color:var(--tx); font-family:'Courier New',monospace; min-height:100vh; overflow-x:hidden; transition:background 0.3s,color 0.3s; }
+    body::before { content:''; position:fixed; top:0;left:0;right:0;bottom:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scanline) 2px,var(--scanline) 4px); pointer-events:none; z-index:9999; }
+
+    /* MENU */
+    .menu-container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:40px; padding:24px; }
+    .game-title { font-family:'Press Start 2P',cursive; font-size:clamp(18px,5vw,44px); color:var(--green); text-shadow:0 0 20px var(--green),0 0 50px var(--green)44; text-align:center; animation:glow 2.5s ease-in-out infinite; }
+    @keyframes glow { 0%,100%{text-shadow:0 0 18px var(--green),0 0 40px var(--green)55;} 50%{text-shadow:0 0 28px var(--green),0 0 70px var(--green)aa;} }
+    .game-subtitle { font-family:'Press Start 2P',cursive; font-size:clamp(6px,1.4vw,10px); color:var(--cyan); text-align:center; margin-top:12px; }
+    .mode-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+    .mode-card { background:var(--bg2); border:2px solid var(--green)33; border-radius:10px; padding:26px 22px; width:240px; cursor:pointer; transition:all 0.25s; text-align:center; }
+    .mode-card:hover { border-color:var(--green); box-shadow:0 0 24px var(--green)40; transform:translateY(-5px); }
+    .mode-icon { font-size:44px; margin-bottom:14px; }
+    .mode-title { font-family:'Press Start 2P',cursive; font-size:10px; color:var(--green); margin-bottom:12px; }
+    .mode-desc { font-size:11px; color:var(--tx2); line-height:1.7; }
+    .mode-play { margin-top:14px; font-size:9px; }
+
+    /* LEVEL SELECT */
+    .level-cards { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+    .level-card { background:var(--bg2); border:2px solid; border-radius:10px; padding:24px 18px; width:180px; cursor:pointer; transition:all 0.25s; text-align:center; position:relative; }
+    .level-card.locked { opacity:0.5; cursor:not-allowed; }
+    .level-icon  { font-size:36px; margin-bottom:12px; }
+    .level-label { font-family:'Press Start 2P',cursive; font-size:9px; margin-bottom:8px; }
+    .level-count { font-size:10px; color:var(--tx3); }
+    .level-best  { font-size:9px; margin-top:8px; }
+    .lock-badge  { font-size:18px; position:absolute; top:8px; right:8px; }
+
+    /* SHARED */
+    .game-container { max-width:1300px; margin:0 auto; padding:18px; }
+    .game-header { display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+    .back-btn { background:var(--bg2); border:1px solid var(--bd2); color:var(--tx2); padding:8px 16px; cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.2s; }
+    .back-btn:hover { border-color:var(--green); color:var(--green); }
+    .section-title { font-family:'Press Start 2P',cursive; font-size:clamp(8px,1.8vw,13px); color:var(--cyan); }
+    .icon-btn { background:var(--bg2); border:1px solid var(--bd2); color:var(--tx2); padding:7px 12px; cursor:pointer; font-size:14px; transition:all 0.2s; border-radius:4px; }
+    .icon-btn:hover { border-color:var(--green); }
+    .icon-btn.active { border-color:var(--cyan); color:var(--cyan); }
+    .icon-btn.muted  { border-color:#ff3355; color:#ff3355; }
+    .header-right { display:flex; gap:8px; margin-left:auto; align-items:center; }
+    .btn { padding:8px 16px; border:none; cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.18s; border-radius:4px; }
+    .btn-green { background:var(--green); color:#000; } .btn-green:hover { filter:brightness(1.2); box-shadow:0 0 12px var(--green); }
+    .btn-cyan  { background:var(--cyan);  color:#000; } .btn-cyan:hover  { filter:brightness(1.2); box-shadow:0 0 12px var(--cyan); }
+    .btn-red   { background:#ff3355; color:#fff; }      .btn-red:hover   { background:#ff5577; box-shadow:0 0 12px #ff3355; }
+    .btn-gray  { background:var(--bg4); color:var(--tx2); border:1px solid var(--bd2); } .btn-gray:hover { filter:brightness(1.2); color:var(--tx); }
+    .btn-purple { background:#8855ff; color:#fff; } .btn-purple:hover { background:#aa77ff; box-shadow:0 0 12px #8855ff; }
+    .btn:disabled { opacity:0.35; cursor:not-allowed; }
+    .algo-btn { padding:6px 13px; border:1px solid var(--bd2); background:var(--bg2); color:var(--tx3); cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.18s; border-radius:4px; }
+    .algo-btn.active { border-color:var(--green); color:var(--green); background:var(--green)11; }
+    .controls-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0; }
+    .speed-control { display:flex; align-items:center; gap:8px; font-size:10px; color:var(--tx3); }
+    .speed-control input[type=range] { width:90px; accent-color:var(--green); }
+    .stats-bar { display:flex; gap:8px; flex-wrap:wrap; }
+    .stat-item { background:var(--bg2); border:1px solid var(--bd3); border-radius:4px; padding:7px 12px; text-align:center; min-width:64px; }
+    .stat-label { font-size:6px; color:var(--tx4); font-family:'Press Start 2P',cursive; margin-bottom:4px; }
+    .stat-value { font-size:16px; font-family:'Press Start 2P',cursive; }
+    .message { text-align:center; padding:8px; border-radius:4px; font-family:'Press Start 2P',cursive; font-size:8px; margin:8px 0; }
+    .message.success { background:var(--green)20; color:var(--green); border:1px solid var(--green)66; }
+    .message.error   { background:#ff333320; color:#ff5566; border:1px solid #ff335566; }
+    .message.info    { background:#0044ff20; color:#5588ff; border:1px solid #0044ff66; }
+
+    /* MODE TABS */
+    .mode-tabs { display:flex; margin-bottom:12px; border-radius:4px; overflow:hidden; border:1px solid var(--bd); width:fit-content; }
+    .mode-tab { padding:8px 20px; background:var(--bg2); color:var(--tx3); cursor:pointer; font-family:'Press Start 2P',cursive; font-size:7px; transition:all 0.2s; border:none; }
+    .mode-tab.active { background:var(--green)18; color:var(--green); }
+
+    /* SORT */
+    .sort-layout { display:grid; grid-template-columns:1fr 280px; gap:18px; }
+    @media(max-width:860px){.sort-layout{grid-template-columns:1fr;}}
+    .monster-arena { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:16px; }
+    .monster-row { display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin:12px 0; min-height:170px; align-items:flex-end; }
+    .monster-card { width:82px; background:var(--bg3); border:2px solid var(--bd); border-radius:8px; padding:9px; cursor:grab; transition:border-color 0.15s,box-shadow 0.15s,transform 0.15s,opacity 0.15s; text-align:center; user-select:none; display:flex; flex-direction:column; justify-content:flex-end; touch-action:none; }
+    .monster-card:active { cursor:grabbing; }
+    .monster-card.comparing { border-color:#3377ff; box-shadow:0 0 14px #3377ff88; }
+    .monster-card.swapping  { border-color:#ff3344; box-shadow:0 0 14px #ff334488; animation:shake 0.25s; }
+    .monster-card.pivot     { border-color:#ffdd00; box-shadow:0 0 14px #ffdd0088; }
+    .monster-card.sorted    { border-color:var(--green); box-shadow:0 0 10px var(--green)44; }
+    .monster-card.merging   { border-color:#ff7700; box-shadow:0 0 14px #ff770066; }
+    .monster-card.hint      { border-color:#ffdd00; box-shadow:0 0 18px #ffdd00bb; animation:hintPulse 0.9s ease-in-out infinite; }
+    .monster-card.dragging  { opacity:0.4; transform:scale(0.92); cursor:grabbing; }
+    .monster-card.drag-over { border-color:#ff00cc; box-shadow:0 0 20px #ff00cc88; transform:scale(1.07); }
+    .monster-card.all-done  { border-color:var(--green); box-shadow:0 0 12px var(--green)55; }
+    @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+    @keyframes hintPulse{0%,100%{box-shadow:0 0 14px #ffdd0088;}50%{box-shadow:0 0 30px #ffdd00cc;}}
+    .monster-emoji { font-size:26px; margin-bottom:5px; pointer-events:none; }
+    .monster-name  { font-size:6px; color:var(--tx3); margin-bottom:3px; font-family:'Press Start 2P',cursive; pointer-events:none; }
+    .monster-hp    { font-family:'Press Start 2P',cursive; font-size:11px; color:var(--tx); margin-bottom:5px; pointer-events:none; }
+    .hp-bar  { height:4px; background:var(--bg4); border-radius:3px; overflow:hidden; pointer-events:none; }
+    .hp-fill { height:100%; border-radius:3px; transition:width 0.25s; }
+    .combo-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; min-height:30px; }
+    .combo-num   { font-family:'Press Start 2P',cursive; font-size:clamp(14px,3vw,24px); color:#ff00cc; text-shadow:0 0 12px #ff00ccaa; }
+    .combo-label { font-family:'Press Start 2P',cursive; font-size:6px; color:var(--tx3); }
+
+    /* SIDE PANEL */
+    .side-panel { display:flex; flex-direction:column; gap:12px; }
+    .panel-box  { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:14px; }
+    .panel-title { font-family:'Press Start 2P',cursive; font-size:8px; color:var(--cyan); margin-bottom:10px; }
+    .pseudo-code { font-size:10px; line-height:1.9; }
+    .pseudo-line { padding:2px 5px; border-radius:2px; color:var(--tx4); transition:all 0.15s; }
+    .pseudo-line.active { background:var(--green)20; color:var(--green); border-left:2px solid var(--green); }
+    .pseudo-line.indent1{padding-left:16px;} .pseudo-line.indent2{padding-left:28px;} .pseudo-line.indent3{padding-left:40px;}
+    .complexity-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:bold; margin-top:5px; }
+    .complexity-badge.bad  { background:#ff334420; color:#ff5566; border:1px solid #ff3344; }
+    .complexity-badge.mid  { background:#ffdd0020; color:#ffdd44; border:1px solid #ffdd00; }
+    .complexity-badge.good { background:var(--green)20; color:var(--green); border:1px solid var(--green); }
+
+    /* RESULTS */
+    .results-overlay { position:fixed; inset:0; background:var(--bg0)ee; display:flex; align-items:center; justify-content:center; z-index:200; }
+    .results-card { background:var(--bg1); border:2px solid var(--green); border-radius:14px; padding:36px 32px; text-align:center; max-width:420px; width:90%; box-shadow:0 0 60px var(--green)30; }
+    .results-title { font-family:'Press Start 2P',cursive; font-size:14px; color:var(--green); margin-bottom:18px; }
+    .stars-row { display:flex; justify-content:center; gap:12px; margin:16px 0 22px; }
+    .star { font-size:40px; }
+    .star.lit  { filter:drop-shadow(0 0 10px #ffdd00); }
+    .star.dark { filter:grayscale(1) brightness(0.25); }
+    .results-stat { font-family:'Press Start 2P',cursive; font-size:7px; color:var(--tx3); margin:7px 0; }
+    .results-stat span { color:var(--tx); }
+
+    /* PATH */
+    .path-layout { display:grid; grid-template-columns:1fr 260px; gap:18px; }
+    @media(max-width:860px){.path-layout{grid-template-columns:1fr;}}
+    .dungeon-area { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:14px; }
+    .dungeon-grid { display:inline-grid; gap:1px; background:var(--bg0); border:1px solid var(--bd); cursor:crosshair; user-select:none; touch-action:none; }
+    .grid-cell { width:25px; height:25px; transition:background-color 0.08s; }
+    .cell-empty   { background:var(--bg2); } .cell-empty:hover{background:var(--bg3);}
+    .cell-wall    { background:var(--bd); border:1px solid var(--bd2); }
+    .cell-start   { background:var(--green); box-shadow:0 0 6px var(--green); }
+    .cell-end     { background:#ff3355; box-shadow:0 0 6px #ff3355; }
+    .cell-open    { background:#1133cc99; } .cell-closed { background:#1a1a3688; }
+    .cell-path    { background:var(--cyan); box-shadow:0 0 5px var(--cyan)99; }
+    .cell-current { background:#ffdd00; box-shadow:0 0 8px #ffdd0099; }
+    .tool-select { display:flex; gap:7px; margin-bottom:10px; flex-wrap:wrap; }
+    .tool-btn { padding:6px 12px; border:1px solid var(--bd2); background:var(--bg2); color:var(--tx3); cursor:pointer; font-size:10px; transition:all 0.18s; border-radius:4px; }
+    .tool-btn.active { border-color:var(--cyan); color:var(--cyan); background:var(--cyan)12; }
+    .legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+    .legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--tx3); }
+    .legend-dot { width:12px; height:12px; border-radius:2px; flex-shrink:0; }
+    .queue-panel { max-height:170px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--green) var(--bg0); }
+    .queue-item { display:flex; justify-content:space-between; padding:4px 7px; border-bottom:1px solid var(--bd); font-size:10px; font-family:'Courier New',monospace; }
+    .queue-item:first-child { background:var(--green)12; color:var(--green); }
+    .q-pos{color:var(--cyan);} .q-f{color:#ff00cc;} .q-g{color:#ffdd00;}
+
+    /* BINARY SEARCH */
+    .bs-layout { display:grid; grid-template-columns:1fr 260px; gap:18px; }
+    @media(max-width:860px){.bs-layout{grid-template-columns:1fr;}}
+    .bs-arena { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:20px; }
+    .bs-array { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:20px 0; }
+    .bs-cell { width:56px; height:68px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:6px; border:2px solid var(--bd); background:var(--bg3); font-family:'Press Start 2P',cursive; transition:all 0.25s; position:relative; }
+    .bs-cell .bs-val { font-size:13px; color:var(--tx); }
+    .bs-cell .bs-idx { font-size:6px; color:var(--tx4); margin-top:4px; }
+    .bs-cell.mid     { border-color:#ffdd00; box-shadow:0 0 14px #ffdd0088; background:#ffdd0015; }
+    .bs-cell.found   { border-color:var(--green); box-shadow:0 0 16px var(--green)88; background:var(--green)15; animation:foundPop 0.4s; }
+    .bs-cell.elim    { opacity:0.25; }
+    .bs-cell.target-pick { border-color:var(--cyan); box-shadow:0 0 12px var(--cyan)66; cursor:pointer; }
+    .bs-cell.target-pick:hover { transform:scale(1.08); }
+    @keyframes foundPop{0%{transform:scale(1.3);}100%{transform:scale(1);}}
+    .bs-ptr { font-size:7px; font-family:'Press Start 2P',cursive; position:absolute; bottom:-18px; white-space:nowrap; }
+
+    /* GRAPH BFS/DFS */
+    .graph-layout { display:grid; grid-template-columns:1fr 260px; gap:18px; }
+    @media(max-width:860px){.graph-layout{grid-template-columns:1fr;}}
+    .graph-arena { background:var(--bg1); border:1px solid var(--green)20; border-radius:8px; padding:16px; }
+    .graph-svg { display:block; width:100%; max-width:560px; height:320px; }
+    .graph-node { cursor:pointer; transition:all 0.2s; }
+    .graph-node circle { transition:all 0.25s; }
+    .graph-node text { font-family:'Press Start 2P',cursive; font-size:11px; pointer-events:none; fill:var(--tx); }
+    .graph-edge { stroke:var(--bd2); stroke-width:2; transition:stroke 0.25s; }
+    .graph-edge.visited { stroke:var(--green)88; }
+    .traversal-order { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .order-badge { font-family:'Press Start 2P',cursive; font-size:8px; padding:4px 8px; border-radius:4px; background:var(--bg2); border:1px solid var(--bd2); color:var(--tx2); }
+    .order-badge.current { border-color:var(--green); color:var(--green); background:var(--green)15; }
+    .stack-panel { max-height:160px; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--green) var(--bg0); }
+    .stack-item { padding:4px 7px; border-bottom:1px solid var(--bd); font-size:10px; font-family:'Courier New',monospace; color:var(--tx2); }
+    .stack-item:first-child { color:var(--green); background:var(--green)12; }
+
+    /* PLANET BACKGROUNDS */
+    .planet-picker{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:8px 0;}
+
+    /* Keyframes */
+    @keyframes rotateSurface{from{transform:translateX(0);}to{transform:translateX(-33.333%);}}
+    @keyframes starFloat{0%,100%{opacity:0.4;}50%{opacity:1;}}
+    @keyframes atmoPulse{0%,100%{opacity:0.7;}50%{opacity:1;}}
+
+    /* Stars */
+    .stars-bg{position:fixed;inset:0;z-index:-3;pointer-events:none;overflow:hidden;}
+    .star-dot{position:absolute;border-radius:50%;background:#fff;animation:starFloat var(--dur,3s) var(--del,0s) ease-in-out infinite;}
+
+    /* Background planet — layered structure */
+    .planet-outer{position:fixed;bottom:-110px;right:-80px;width:380px;height:380px;z-index:-1;pointer-events:none;}
+    .planet-globe{position:absolute;inset:0;border-radius:50%;overflow:hidden;}
+    /* The surface div is 300% wide; translateX(-33.333%) = one full sphere width = seamless loop */
+    .planet-surface{position:absolute;width:300%;height:100%;top:0;left:0;background-repeat:repeat-x;background-size:33.333% 100%;animation:rotateSurface 20s linear infinite;}
+    /* Night-side shading — makes it look 3D */
+    .planet-shade{position:absolute;inset:0;background:radial-gradient(circle at 66% 36%, transparent 12%, rgba(0,0,0,0.22) 48%, rgba(0,0,0,0.82) 100%);}
+    /* Atmospheric glow ring (sits outside the clipped globe) */
+    .planet-atmo{position:absolute;inset:-16px;border-radius:50%;pointer-events:none;animation:atmoPulse 4s ease-in-out infinite;}
+    /* Saturn ring */
+    .planet-ring{position:absolute;width:136%;height:36%;border-radius:50%;border:16px solid;top:32%;left:-18%;pointer-events:none;transform:rotateX(72deg);display:none;z-index:1;}
+
+    /* Background tint per planet */
+    body[data-planet="moon"]    {--bg0:#080910;--bg1:#0c0d18;--bg2:#101120;--bg3:#181929;}
+    body[data-planet="earth"]   {--bg0:#010d04;--bg1:#021508;--bg2:#031d0c;--bg3:#052614;}
+    body[data-planet="mars"]    {--bg0:#0f0300;--bg1:#180500;--bg2:#200700;--bg3:#2c0a00;}
+    body[data-planet="jupiter"] {--bg0:#0c0700;--bg1:#150e00;--bg2:#1c1400;--bg3:#261b00;}
+    body[data-planet="saturn"]  {--bg0:#0c0900;--bg1:#141100;--bg2:#1c1800;--bg3:#242100;}
+    body[data-planet="neptune"] {--bg0:#00040f;--bg1:#000618;--bg2:#00091f;--bg3:#000d2a;}
+    body[data-theme="light"][data-planet]{--bg0:#eef2f5;--bg1:#fff;--bg2:#e4eaf0;--bg3:#d4dde8;}
+
+    /* PENGUIN MASCOT */
+    .penguin-wrap{position:fixed;bottom:18px;left:18px;z-index:150;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;}
+    .penguin-emoji{font-size:52px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.6));transition:filter 0.2s;animation:penguinBob 2.4s ease-in-out infinite;}
+    .penguin-emoji:hover{filter:drop-shadow(0 4px 18px #00ff8888) brightness(1.1);}
+    .penguin-emoji.excited{animation:penguinExcited 0.7s ease-in-out;}
+    .penguin-name{font-family:'Press Start 2P',cursive;font-size:5px;color:var(--cyan);margin-top:3px;text-shadow:0 0 8px var(--cyan)88;letter-spacing:1px;}
+    @keyframes penguinBob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-10px) rotate(2deg);}}
+    @keyframes penguinExcited{0%{transform:scale(1) rotate(0);}20%{transform:scale(1.38) rotate(-16deg);}40%{transform:scale(1.12) rotate(14deg);}60%{transform:scale(1.28) rotate(-11deg);}80%{transform:scale(1.08) rotate(8deg);}100%{transform:scale(1) rotate(0);}}
+    .penguin-bubble{position:absolute;bottom:88px;left:0;width:262px;background:var(--bg1);border:2px solid var(--green);border-radius:14px;padding:14px 14px 11px;box-shadow:0 0 28px var(--green)44;animation:pBubblePop 0.22s cubic-bezier(0.34,1.56,0.64,1);z-index:1;}
+    .penguin-bubble::after{content:'';position:absolute;bottom:-11px;left:26px;border:11px solid transparent;border-top-color:var(--green);}
+    .penguin-bubble-text{font-size:10px;color:var(--tx);line-height:1.9;margin-bottom:10px;}
+    .penguin-hints-row{display:flex;align-items:center;gap:5px;font-family:'Press Start 2P',cursive;font-size:6px;color:var(--tx3);}
+    .penguin-pip{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid var(--bd2);margin-right:1px;transition:background 0.3s;}
+    .penguin-close{position:absolute;top:4px;right:8px;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:20px;padding:2px 6px;line-height:1;transition:color 0.15s;}
+    .penguin-close:hover{color:var(--tx);}
+    .penguin-cheer{position:absolute;bottom:88px;left:0;width:195px;background:var(--bg1);border:2px solid #ffdd00;border-radius:12px;padding:10px 13px;font-family:'Press Start 2P',cursive;font-size:8px;color:#ffdd00;line-height:1.75;box-shadow:0 0 18px #ffdd0044;animation:pBubblePop 0.22s cubic-bezier(0.34,1.56,0.64,1),pCheerFade 0.5s ease-out 2.8s forwards;z-index:1;}
+    @keyframes pBubblePop{from{transform:scale(0.55) translateY(16px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+    @keyframes pCheerFade{to{opacity:0;transform:translateY(-14px);}}
+
+    /* MULTIPLAYER */
+    .setup-container{display:flex;flex-direction:column;align-items:center;gap:28px;min-height:100vh;justify-content:center;padding:24px;}
+    .player-inputs{display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;}
+    .player-input-row{display:flex;align-items:center;gap:10px;}
+    .player-input-label{font-family:'Press Start 2P',cursive;font-size:8px;min-width:76px;}
+    .player-name-input{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx);padding:9px 13px;font-family:'Press Start 2P',cursive;font-size:8px;border-radius:4px;flex:1;outline:none;transition:border-color 0.2s;}
+    .player-name-input:focus{border-color:var(--green);}
+    .multi-leaderboard{display:flex;flex-direction:column;gap:10px;width:100%;margin:12px 0;}
+    .lb-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;border:2px solid;}
+    .lb-rank{font-family:'Press Start 2P',cursive;font-size:18px;min-width:36px;text-align:center;}
+    .lb-name{font-family:'Press Start 2P',cursive;font-size:9px;flex:1;}
+    .lb-stars{font-size:16px;}
+    .lb-meta{font-family:'Press Start 2P',cursive;font-size:7px;color:var(--tx3);text-align:right;}
+    .player-turn-badge{display:flex;align-items:center;gap:8px;padding:5px 14px;border-radius:20px;border:2px solid;font-family:'Press Start 2P',cursive;font-size:8px;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, createContext, useContext } = React;
+
+// ── SOUND ENGINE ──────────────────────────────────────────────────────────
+let _audioCtx=null, _muted=localStorage.getItem('aq_muted')==='true';
+function getAC(){if(!_audioCtx)_audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(_audioCtx.state==='suspended')_audioCtx.resume();return _audioCtx;}
+function tone(f,t,d,v=0.22,delay=0){if(_muted)return;if(!_musicStarted&&_musicOn){_musicStarted=true;setTimeout(startMusic,200);}try{const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();o.connect(g);g.connect(ac.destination);o.type=t;o.frequency.setValueAtTime(f,ac.currentTime+delay);g.gain.setValueAtTime(v,ac.currentTime+delay);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+delay+d);o.start(ac.currentTime+delay);o.stop(ac.currentTime+delay+d+0.01);}catch(e){}}
+const SFX={
+  click:    ()=>tone(900,'square',0.05,0.12),
+  swap:     ()=>{tone(440,'square',0.07,0.18);tone(330,'square',0.07,0.18,0.08);},
+  compare:  ()=>tone(700,'square',0.03,0.06),
+  wall:     ()=>tone(120,'square',0.06,0.12),
+  combo:    n=>{const ns=[523,659,784,1047,1319];for(let i=0;i<Math.min(n,5);i++)tone(ns[i],'square',0.1,0.2,i*0.09);},
+  sorted:   ()=>{[[523,0],[659,.1],[784,.2],[1047,.32],[784,.46],[1047,.56],[1319,.68]].forEach(([f,d])=>tone(f,'square',0.18,0.22,d));},
+  star:     n=>{[1047,1319,1568].slice(0,n).forEach((f,i)=>tone(f,'sine',0.18,0.2,i*0.15));},
+  pathFound:()=>{[[440,0],[554,.14],[659,.28],[880,.42]].forEach(([f,d])=>tone(f,'sine',0.22,0.2,d));},
+  noPath:   ()=>{tone(220,'sawtooth',0.25,0.2);tone(165,'sawtooth',0.3,0.2,0.22);},
+  back:     ()=>{tone(440,'square',0.06,0.12);tone(330,'square',0.06,0.12,0.07);},
+  select:   ()=>{tone(660,'square',0.05,0.15);tone(880,'square',0.1,0.2,0.06);},
+  found:    ()=>{[[880,0],[1047,.12],[1319,.24]].forEach(([f,d])=>tone(f,'sine',0.15,0.25,d));},
+  unlock:   ()=>{[523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,'sine',0.18,0.2,i*0.07));},
+};
+function toggleMute(){_muted=!_muted;localStorage.setItem('aq_muted',_muted);if(_muted)stopMusic();return _muted;}
+
+// ── 8-BIT BACKGROUND MUSIC ────────────────────────────────────────────────
+// Lookahead audio scheduler — schedules notes 300ms ahead, runs every 80ms
+let _musicOn=localStorage.getItem('aq_music')!=='false';
+let _musicTimer=null,_musicStarted=false;
+let _melIdx=0,_bassIdx=0,_nextMelT=0,_nextBasT=0;
+const _BPM=144,_B=60/_BPM;
+
+// All frequencies used (C major, pentatonic-friendly)
+const _F={r:0,
+  C4:262,D4:294,E4:330,F4:349,G4:392,A4:440,
+  C5:523,D5:587,E5:659,G5:784,A5:880,C6:1047};
+
+// 8-bar melody (32 beats total — loops seamlessly)
+const _MEL=[
+  // Bar 1 — E G A G E C (opens with upward run)
+  [_F.E5,.5],[_F.G5,.5],[_F.A5,1],[_F.G5,.5],[_F.E5,1],[_F.C5,.5],
+  // Bar 2 — D E G . E D
+  [_F.D5,.5],[_F.E5,.5],[_F.G5,1],[_F.r,.5],[_F.E5,.5],[_F.D5,1],
+  // Bar 3 — C E G A G E
+  [_F.C5,.5],[_F.E5,.5],[_F.G5,1],[_F.A5,.5],[_F.G5,.5],[_F.E5,1],
+  // Bar 4 — C-- D C .  (resolution phrase)
+  [_F.C5,2],[_F.D5,.5],[_F.C5,.5],[_F.r,1],
+  // Bar 5 — G A C6 A G E  (climbs to high C6)
+  [_F.G5,.5],[_F.A5,.5],[_F.C6,1],[_F.A5,.5],[_F.G5,.5],[_F.E5,1],
+  // Bar 6 — G E D E G A
+  [_F.G5,.5],[_F.E5,.5],[_F.D5,1],[_F.E5,.5],[_F.G5,.5],[_F.A5,1],
+  // Bar 7 — quick run: G E D E G A G
+  [_F.G5,.5],[_F.E5,.5],[_F.D5,.5],[_F.E5,.5],[_F.G5,.5],[_F.A5,.5],[_F.G5,1],
+  // Bar 8 — E D C--- (lands on C, loops back)
+  [_F.E5,.5],[_F.D5,.5],[_F.C5,3],
+];
+
+// Bass line (32 beats — C major I-V / vi-iii / I-IV / V-I cadence)
+const _BAS=[
+  [_F.C4,2],[_F.G4,2],  // I  V
+  [_F.A4,2],[_F.E4,2],  // vi iii
+  [_F.C4,2],[_F.F4,2],  // I  IV
+  [_F.G4,2],[_F.E4,2],  // V  iii
+  [_F.C4,2],[_F.A4,2],  // I  vi
+  [_F.G4,2],[_F.E4,2],  // V  iii
+  [_F.F4,2],[_F.G4,2],  // IV V
+  [_F.C4,4],            // I  (perfect cadence)
+];
+
+function _mNote(freq,start,dur,type,vol){
+  if(!freq)return;
+  try{
+    const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(0,start);
+    g.gain.linearRampToValueAtTime(vol,start+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001,start+dur*0.82);
+    o.start(start);o.stop(start+dur);
+  }catch(e){}
+}
+
+function _sched(){
+  if(!_musicOn||_muted)return;
+  try{
+    const ac=getAC(),until=ac.currentTime+0.3;
+    while(_nextMelT<until){
+      const[f,b]=_MEL[_melIdx%_MEL.length];
+      _mNote(f,_nextMelT,b*_B*0.88,'square',0.07);
+      _nextMelT+=b*_B;_melIdx++;
+    }
+    while(_nextBasT<until){
+      const[f,b]=_BAS[_bassIdx%_BAS.length];
+      _mNote(f,_nextBasT,b*_B*0.72,'triangle',0.05);
+      _nextBasT+=b*_B;_bassIdx++;
+    }
+  }catch(e){}
+}
+
+function startMusic(){
+  if(!_musicOn||_musicTimer)return;
+  try{
+    const ac=getAC(),t=ac.currentTime+0.18;
+    _nextMelT=t;_nextBasT=t;_melIdx=0;_bassIdx=0;
+    _sched();
+    _musicTimer=setInterval(_sched,80);
+  }catch(e){}
+}
+function stopMusic(){if(_musicTimer){clearInterval(_musicTimer);_musicTimer=null;}}
+function toggleMusic(){_musicOn=!_musicOn;localStorage.setItem('aq_music',String(_musicOn));if(_musicOn)startMusic();else stopMusic();return _musicOn;}
+
+// ── THEME ─────────────────────────────────────────────────────────────────
+const ThemeCtx = createContext({theme:'dark',toggle:()=>{}});
+function useTheme(){return useContext(ThemeCtx);}
+
+// ── SCORES ────────────────────────────────────────────────────────────────
+function getScores(){return JSON.parse(localStorage.getItem('aq_scores')||'{}');}
+function saveScore(levelKey,stars,timeS){
+  const s=getScores(); const k=levelKey;
+  const cur=s[k];
+  if(!cur||stars>cur.stars||(stars===cur.stars&&timeS<(cur.time||Infinity))){
+    s[k]={stars,time:timeS}; localStorage.setItem('aq_scores',JSON.stringify(s));
+    if(!cur||stars>cur.stars) SFX.unlock();
+  }
+}
+function getBest(levelKey){return getScores()[levelKey]||null;}
+function isUnlocked(levelKey){
+  if(levelKey==='easy') return true;
+  if(levelKey==='medium') return (getBest('easy')?.stars||0)>=1;
+  return (getBest('medium')?.stars||0)>=1;
+}
+function fmtTime(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+const MONSTERS=[
+  {emoji:'🐲',name:'DRAGON',color:'#ff4455'},{emoji:'👹',name:'OGRE',color:'#ff8800'},
+  {emoji:'🧟',name:'ZOMBIE',color:'#88bb00'},{emoji:'👻',name:'GHOST',color:'#8899ff'},
+  {emoji:'🦇',name:'BAT',color:'#9955ff'},{emoji:'🕷️',name:'SPIDER',color:'#bb5500'},
+  {emoji:'🐺',name:'WOLF',color:'#999999'},{emoji:'🦂',name:'SCORP',color:'#ffcc00'},
+  {emoji:'🧌',name:'TROLL',color:'#66aa44'},{emoji:'💀',name:'SKULL',color:'#cc44cc'},
+];
+const LEVELS={
+  easy:  {count:6, label:'EASY',  color:'#00ff88',icon:'🌱',desc:'6 monsters'},
+  medium:{count:8, label:'MEDIUM',color:'#ffdd00',icon:'⚔️', desc:'8 monsters'},
+  hard:  {count:10,label:'HARD',  color:'#ff3355',icon:'💀',desc:'10 monsters'},
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const cloneArr=a=>[...a];
+function countInversions(arr){let inv=0;for(let i=0;i<arr.length-1;i++)for(let j=i+1;j<arr.length;j++)if(arr[i]>arr[j])inv++;return inv;}
+function getBubbleHint(arr){for(let i=0;i<arr.length-1;i++)if(arr[i]>arr[i+1])return[i,i+1];return null;}
+function isSorted(arr){return arr.every((v,i)=>i===0||arr[i-1]<=v);}
+function calcStars(ps,opt){if(opt===0)return 3;const r=ps/opt;if(r<=1.3)return 3;if(r<=2.0)return 2;return 1;}
+function generateMonsters(levelKey){const COUNT=LEVELS[levelKey].count;const v=Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);let t=0;while(isSorted(v)&&t++<30){const i=Math.floor(Math.random()*COUNT),j=Math.floor(Math.random()*COUNT);[v[i],v[j]]=[v[j],v[i]];}return v.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp}));}
+
+// ── SORTING STEPS ─────────────────────────────────────────────────────────
+function genBubble(arr){
+  const steps=[],a=cloneArr(arr),n=a.length,ss=new Set();
+  for(let i=0;i<n-1;i++){for(let j=0;j<n-i-1;j++){steps.push({arr:cloneArr(a),comparing:[j,j+1],swapping:[],sorted:[...ss],pivot:-1,pl:2});if(a[j]>a[j+1]){[a[j],a[j+1]]=[a[j+1],a[j]];steps.push({arr:cloneArr(a),comparing:[],swapping:[j,j+1],sorted:[...ss],pivot:-1,pl:4});}}ss.add(n-1-i);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pl:1});}
+  ss.add(0);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pl:5});return steps;
+}
+function genQuick(arr){
+  const steps=[],a=cloneArr(arr),ss=new Set();
+  function part(lo,hi){let i=lo-1;steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:hi,pl:0});for(let j=lo;j<hi;j++){steps.push({arr:cloneArr(a),comparing:[j,hi],swapping:[],sorted:[...ss],pivot:hi,pl:2});if(a[j]<=a[hi]){i++;if(i!==j){[a[i],a[j]]=[a[j],a[i]];steps.push({arr:cloneArr(a),comparing:[],swapping:[i,j],sorted:[...ss],pivot:hi,pl:4});}}}[a[i+1],a[hi]]=[a[hi],a[i+1]];ss.add(i+1);steps.push({arr:cloneArr(a),comparing:[],swapping:[i+1,hi],sorted:[...ss],pivot:i+1,pl:5});return i+1;}
+  function qs(lo,hi){if(lo<hi){const pi=part(lo,hi);qs(lo,pi-1);qs(pi+1,hi);}else if(lo===hi){ss.add(lo);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[...ss],pivot:-1,pl:6});}}
+  qs(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pl:6});return steps;
+}
+function genMerge(arr){
+  const steps=[],a=cloneArr(arr);
+  function merge(l,m,r){const L=a.slice(l,m+1),R=a.slice(m+1,r+1);let i=0,j=0,k=l;steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pl:3,mr:[l,r]});while(i<L.length&&j<R.length){steps.push({arr:cloneArr(a),comparing:[l+i,m+1+j],swapping:[],sorted:[],pivot:-1,pl:4,mr:[l,r]});if(L[i]<=R[j])a[k++]=L[i++];else a[k++]=R[j++];steps.push({arr:cloneArr(a),comparing:[],swapping:[k-1],sorted:[],pivot:-1,pl:5,mr:[l,r]});}while(i<L.length)a[k++]=L[i++];while(j<R.length)a[k++]=R[j++];steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pl:6,mr:[l,r]});}
+  function ms(l,r){if(l<r){const m=Math.floor((l+r)/2);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:[],pivot:-1,pl:0,mr:[l,r]});ms(l,m);ms(m+1,r);merge(l,m,r);}}
+  ms(0,a.length-1);steps.push({arr:cloneArr(a),comparing:[],swapping:[],sorted:a.map((_,i)=>i),pivot:-1,pl:7});return steps;
+}
+const PSEUDO={
+  bubble:[{t:'for i = 0 to n-1:',i:0},{t:'for j = 0 to n-i-2:',i:1},{t:'compare arr[j], arr[j+1]',i:2},{t:'if arr[j] > arr[j+1]:',i:2},{t:'swap(arr[j], arr[j+1])',i:3},{t:'// Sorted! ✓',i:0}],
+  quick: [{t:'pivot = arr[high]',i:0},{t:'i = low - 1',i:0},{t:'for j = low to high-1:',i:0},{t:'if arr[j] <= pivot:',i:1},{t:'swap(arr[++i], arr[j])',i:2},{t:'swap(arr[i+1], pivot)',i:1},{t:'recurse halves',i:0},{t:'// Sorted! ✓',i:0}],
+  merge: [{t:'mergesort(l, r):',i:0},{t:'if l < r:',i:1},{t:'m = (l+r)/2',i:2},{t:'merge(l, m, r) →',i:1},{t:'compare left vs right',i:2},{t:'place smaller',i:3},{t:'copy remaining',i:2},{t:'// Sorted! ✓',i:0}],
+};
+const COMPL={bubble:{time:'O(n²)',space:'O(1)',b:'bad'},quick:{time:'O(n log n)',space:'O(log n)',b:'mid'},merge:{time:'O(n log n)',space:'O(n)',b:'mid'}};
+
+// ── PATHFINDING ───────────────────────────────────────────────────────────
+const ROWS=18,COLS=24;
+const mkGrid=()=>Array.from({length:ROWS},(_,r)=>Array.from({length:COLS},(_,c)=>({r,c,wall:false})));
+function genMaze(){const g=mkGrid();for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(Math.random()<0.28)g[r][c].wall=true;[[1,1],[1,2],[2,1],[ROWS-2,COLS-2],[ROWS-2,COLS-3],[ROWS-3,COLS-2]].forEach(([r,c])=>{if(r>=0&&r<ROWS&&c>=0&&c<COLS)g[r][c].wall=false;});return g;}
+function mh(r1,c1,r2,c2){return Math.abs(r1-r2)+Math.abs(c1-c2);}
+function runPath(grid,start,end,astar){
+  const frames=[],dist=Array.from({length:ROWS},()=>Array(COLS).fill(Infinity)),prev=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  dist[start[0]][start[1]]=0;let open=[{r:start[0],c:start[1],g:0,f:0}];const vis=new Set(),os=new Set([`${start[0]},${start[1]}`]);
+  while(open.length){open.sort((a,b)=>a.f-b.f);const c=open.shift(),k=`${c.r},${c.c}`;os.delete(k);if(vis.has(k))continue;vis.add(k);frames.push({visited:new Set(vis),open:new Set(os),current:[c.r,c.c],queue:open.slice(0,12).map(x=>({...x}))});if(c.r===end[0]&&c.c===end[1])break;for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){const nr=c.r+dr,nc=c.c+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||grid[nr][nc].wall)continue;const nk=`${nr},${nc}`;if(vis.has(nk))continue;const ng=c.g+1;if(ng<dist[nr][nc]){dist[nr][nc]=ng;prev[nr][nc]=[c.r,c.c];const h=astar?mh(nr,nc,end[0],end[1]):0;os.add(nk);open.push({r:nr,c:nc,g:ng,f:ng+h});}}}
+  const path=[];let cur=end;while(cur&&!(cur[0]===start[0]&&cur[1]===start[1])){path.unshift(cur);cur=prev[cur[0]][cur[1]];}if(cur)path.unshift(start);
+  const found=path.length>1&&path[path.length-1][0]===end[0]&&path[path.length-1][1]===end[1];
+  if(frames.length)frames[frames.length-1]={...frames[frames.length-1],path:found?path:[],found};
+  return{frames,path:found?path:[],found};
+}
+
+// ── BINARY SEARCH ─────────────────────────────────────────────────────────
+function genBSArray(n){const s=new Set();while(s.size<n)s.add(Math.floor(Math.random()*90)+10);return[...s].sort((a,b)=>a-b);}
+function genBSSteps(arr,target){
+  const steps=[];let lo=0,hi=arr.length-1,found=false;
+  while(lo<=hi){const mid=Math.floor((lo+hi)/2);steps.push({lo,hi,mid,target,phase:'check'});if(arr[mid]===target){steps.push({lo,hi,mid,target,phase:'found'});found=true;break;}else if(arr[mid]<target){steps.push({lo,hi,mid,target,phase:'goRight'});lo=mid+1;}else{steps.push({lo,hi,mid,target,phase:'goLeft'});hi=mid-1;}}
+  if(!found)steps.push({lo,hi,mid:-1,target,phase:'notFound'});
+  return steps;
+}
+
+// ── GRAPH BFS/DFS ─────────────────────────────────────────────────────────
+const GNODES=[
+  {id:0,x:280,y:30, label:'A'},{id:1,x:140,y:110,label:'B'},{id:2,x:420,y:110,label:'C'},
+  {id:3,x:60, y:200,label:'D'},{id:4,x:210,y:200,label:'E'},{id:5,x:360,y:200,label:'F'},{id:6,x:490,y:200,label:'G'},
+  {id:7,x:110,y:290,label:'H'},{id:8,x:280,y:290,label:'I'},{id:9,x:430,y:290,label:'J'},
+];
+const GEDGES=[[0,1],[0,2],[1,3],[1,4],[2,5],[2,6],[3,7],[4,8],[5,8],[5,9],[6,9]];
+function edgeKey(a,b){return`${Math.min(a,b)}-${Math.max(a,b)}`;}
+function neighbors(id){return GEDGES.filter(([a,b])=>a===id||b===id).map(([a,b])=>a===id?b:a).sort((a,b)=>a-b);}
+function genBFS(start){
+  const steps=[],vis=new Set(),queue=[start];vis.add(start);
+  while(queue.length){const cur=queue.shift();steps.push({visited:new Set(vis),current:cur,queue:[...queue],stack:null});for(const n of neighbors(cur)){if(!vis.has(n)){vis.add(n);queue.push(n);}}}
+  return steps;
+}
+function genDFS(start){
+  const steps=[],vis=new Set(),stack=[start];
+  while(stack.length){const cur=stack.pop();if(vis.has(cur))continue;vis.add(cur);steps.push({visited:new Set(vis),current:cur,stack:[...stack],queue:null});for(const n of [...neighbors(cur)].reverse())if(!vis.has(n))stack.push(n);}
+  return steps;
+}
+
+// ── SHARED COMPONENTS ─────────────────────────────────────────────────────
+function MuteBtn(){
+  const[muted,setMuted]=useState(_muted);
+  return <button className={`icon-btn${muted?' muted':''}`} onClick={()=>{const m=toggleMute();setMuted(m);}} title={muted?'Unmute':'Mute'}>{muted?'🔇':'🔊'}</button>;
+}
+function MusicBtn(){
+  const[on,setOn]=useState(_musicOn);
+  return(
+    <button className={`icon-btn${!on?' muted':''}`}
+      style={{fontSize:13}}
+      onClick={()=>{const m=toggleMusic();setOn(m);if(m&&!_musicStarted){_musicStarted=true;}}}
+      title={on?'Music ON (click to stop)':'Music OFF (click to play)'}
+    >{on?'🎵':'🎵'}<span style={{fontSize:7,marginLeft:3,fontFamily:"'Press Start 2P',cursive"}}>{on?'ON':'OFF'}</span></button>
+  );
+}
+function ThemeBtn(){
+  const{theme,toggle}=useTheme();
+  return <button className="icon-btn" onClick={()=>{SFX.click();toggle();}} title="Toggle theme">{theme==='dark'?'☀️':'🌙'}</button>;
+}
+function HeaderRight(){return <div className="header-right"><ThemeBtn/><MusicBtn/><MuteBtn/></div>;}
+
+function ResultsOverlay({stars,playerSwaps,optSwaps,timeS,timerOn,onRetry,onMenu,playerName,nextPlayerName,onNext}){
+  const pct=optSwaps===0?100:Math.min(100,Math.round((optSwaps/playerSwaps)*100));
+  const trunc=n=>n&&n.length>9?n.slice(0,9)+'…':n;
+  useEffect(()=>SFX.star(stars),[stars]);
+  return(
+    <div className="results-overlay">
+      <div className="results-card">
+        {playerName&&<div style={{fontFamily:"'Press Start 2P',cursive",fontSize:8,color:'var(--tx3)',marginBottom:10}}>👤 {playerName}</div>}
+        <div className="results-title">{stars===3?'🏆 PERFECT!':stars===2?'⚔️ GREAT!':'💡 GOOD TRY!'}</div>
+        <div className="stars-row">{[1,2,3].map(s=><span key={s} className={`star ${s<=stars?'lit':'dark'}`}>⭐</span>)}</div>
+        <div className="results-stat">YOUR SWAPS: <span>{playerSwaps}</span></div>
+        <div className="results-stat">PAR (OPTIMAL): <span>{optSwaps}</span></div>
+        <div className="results-stat">EFFICIENCY: <span style={{color:pct>=80?'#00ff88':pct>=50?'#ffdd00':'#ff5566'}}>{pct}%</span></div>
+        {timerOn&&<div className="results-stat">TIME: <span>{fmtTime(timeS)}</span></div>}
+        <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:22,flexWrap:'wrap'}}>
+          {nextPlayerName?(
+            <button className="btn btn-purple" onClick={()=>{SFX.click();onNext();}}>▶ PASS TO {trunc(nextPlayerName)}</button>
+          ):onNext?(
+            <button className="btn btn-green" onClick={()=>{SFX.click();onNext();}}>🏆 SEE RESULTS</button>
+          ):(
+            <button className="btn btn-green" onClick={()=>{SFX.click();onRetry();}}>↺ RETRY</button>
+          )}
+          <button className="btn btn-gray" onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PLANET BACKGROUND SYSTEM ──────────────────────────────────────────────
+// Surface gradients: each uses a diagonal angle so bands are visible when scrolled.
+// width:300% + translateX(-33.333%) + background-size:33.333% = seamless 1-sphere loop.
+const PLANET_STYLES={
+  space:  {surf:'radial-gradient(circle at 38% 38%,#221133,#0a0812)',glow:'none',rot:'0s',ring:false},
+  moon:   {surf:'repeating-linear-gradient(168deg,#e0e0e0 0%,#e0e0e0 10%,#a8a8a8 10%,#a8a8a8 22%,#d0d0d0 22%,#d0d0d0 34%,#909090 34%,#909090 46%,#c8c8c8 46%,#c8c8c8 58%,#e8e8e8 58%,#e8e8e8 70%,#b8b8b8 70%,#b8b8b8 82%,#a0a0a0 82%,#a0a0a0 100%)',glow:'rgba(190,190,210,0.35)',rot:'26s',ring:false},
+  earth:  {surf:'repeating-linear-gradient(168deg,#1a88cc 0%,#1a88cc 14%,#2a9932 14%,#2a9932 26%,#1677bb 26%,#1677bb 40%,#44aa55 40%,#44aa55 52%,#2288ee 52%,#2288ee 64%,#228833 64%,#228833 76%,#55bb66 76%,#55bb66 88%,#1a88cc 88%,#1a88cc 100%)',glow:'rgba(30,130,220,0.4)',rot:'20s',ring:false},
+  mars:   {surf:'repeating-linear-gradient(168deg,#c04028 0%,#c04028 14%,#dd6640 14%,#dd6640 28%,#a82e1e 28%,#a82e1e 42%,#ee7740 42%,#ee7740 56%,#b83d2c 56%,#b83d2c 70%,#cc5535 70%,#cc5535 84%,#c04028 84%,#c04028 100%)',glow:'rgba(192,60,36,0.45)',rot:'19s',ring:false},
+  jupiter:{surf:'repeating-linear-gradient(176deg,#f0c880 0%,#f0c880 10%,#c88040 10%,#c88040 20%,#e8a850 20%,#e8a850 30%,#a06030 30%,#a06030 40%,#f0d090 40%,#f0d090 50%,#c07030 50%,#c07030 60%,#e8b060 60%,#e8b060 70%,#d09050 70%,#d09050 80%,#f0c880 80%,#f0c880 100%)',glow:'rgba(200,132,60,0.42)',rot:'10s',ring:false},
+  saturn: {surf:'repeating-linear-gradient(176deg,#f5e8b8 0%,#f5e8b8 14%,#d4b870 14%,#d4b870 28%,#ede0a0 28%,#ede0a0 42%,#c8a858 42%,#c8a858 56%,#f0d890 56%,#f0d890 70%,#d0b060 70%,#d0b060 84%,#f5e8b8 84%,#f5e8b8 100%)',glow:'rgba(210,180,100,0.42)',rot:'12s',ring:true,ringColor:'#c8a04888'},
+  neptune:{surf:'repeating-linear-gradient(172deg,#1133aa 0%,#1133aa 18%,#2255cc 18%,#2255cc 35%,#3377dd 35%,#3377dd 50%,#1a44bb 50%,#1a44bb 65%,#4488ee 65%,#4488ee 80%,#2266cc 80%,#2266cc 100%)',glow:'rgba(32,96,200,0.42)',rot:'17s',ring:false},
+};
+const PLANETS=[
+  {id:'space',  label:'DEEP SPACE', color:'#8855ff'},
+  {id:'moon',   label:'MOON',       color:'#cccccc'},
+  {id:'earth',  label:'EARTH',      color:'#2277cc'},
+  {id:'mars',   label:'MARS',       color:'#c0442a'},
+  {id:'jupiter',label:'JUPITER',    color:'#c88840'},
+  {id:'saturn', label:'SATURN',     color:'#d4b070'},
+  {id:'neptune',label:'NEPTUNE',    color:'#2266cc'},
+];
+
+let _planet=localStorage.getItem('aq_planet')||'space';
+function setPlanet(id){
+  _planet=id;localStorage.setItem('aq_planet',id);
+  document.body.setAttribute('data-planet',id);
+  const d=PLANET_STYLES[id]||PLANET_STYLES.space;
+  const outer=document.getElementById('planetOuter');
+  const surf=document.getElementById('planetSurface');
+  const atmo=document.getElementById('planetAtmo');
+  const ring=document.getElementById('planetRing');
+  if(outer)outer.style.display=id==='space'?'none':'block';
+  if(surf){surf.style.background=d.surf;surf.style.animationDuration=d.rot;surf.style.animationPlayState=d.rot==='0s'?'paused':'running';}
+  if(atmo)atmo.style.boxShadow=d.glow!=='none'?`0 0 50px 25px ${d.glow}`:'none';
+  if(ring){ring.style.display=d.ring?'block':'none';if(d.ring)ring.style.borderColor=d.ringColor||'#c8a04888';}
+}
+
+// Generate starfield + planet DOM on load
+(function(){
+  // Stars
+  const sb=document.createElement('div');sb.className='stars-bg';
+  for(let i=0;i<140;i++){
+    const s=document.createElement('div'),sz=Math.random()<0.12?3:Math.random()<0.35?1.8:1;
+    s.className='star-dot';
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:${0.25+Math.random()*0.75};--dur:${2+Math.random()*5}s;--del:${Math.random()*5}s;`;
+    sb.appendChild(s);
+  }
+  document.body.prepend(sb);
+  // Planet: outer container → atmosphere + globe(surface+shade) + ring
+  const outer=document.createElement('div');outer.className='planet-outer';outer.id='planetOuter';outer.style.display='none';
+  const atmo=document.createElement('div');atmo.className='planet-atmo';atmo.id='planetAtmo';
+  const globe=document.createElement('div');globe.className='planet-globe';
+  const surf=document.createElement('div');surf.className='planet-surface';surf.id='planetSurface';
+  const shade=document.createElement('div');shade.className='planet-shade';
+  const ring=document.createElement('div');ring.className='planet-ring';ring.id='planetRing';
+  globe.appendChild(surf);globe.appendChild(shade);
+  outer.appendChild(atmo);outer.appendChild(globe);outer.appendChild(ring);
+  document.body.appendChild(outer);
+  // Apply saved planet
+  setPlanet(_planet);
+})();
+
+function PlanetPicker(){
+  const[cur,setCur]=useState(_planet);
+  const pick=(id)=>{SFX.click();setPlanet(id);setCur(id);};
+  return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+      <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx3)'}}>🌌 CHOOSE YOUR WORLD</div>
+      <div className="planet-picker">
+        {PLANETS.map(p=>{
+          const d=PLANET_STYLES[p.id];
+          const active=cur===p.id;
+          const isSpace=p.id==='space';
+          return(
+            <div key={p.id} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer'}} onClick={()=>pick(p.id)}>
+              {/* Planet sphere */}
+              <div style={{position:'relative',width:54,height:54,flexShrink:0}}>
+                {/* Atmosphere glow */}
+                {!isSpace&&<div style={{position:'absolute',inset:-6,borderRadius:'50%',boxShadow:active?`0 0 20px 10px ${p.color}88`:`0 0 10px 4px ${p.color}44`,transition:'all 0.3s'}}/>}
+                {/* Globe (clipped) */}
+                <div style={{
+                  position:'absolute',inset:0,borderRadius:'50%',overflow:'hidden',
+                  border:`3px solid ${active?'#fff':p.color+'55'}`,
+                  transform:active?'scale(1.14)':'scale(1)',
+                  transition:'all 0.25s',
+                  boxShadow:active?`0 0 0 2px ${p.color}`:'none',
+                }}>
+                  {/* Rotating surface */}
+                  <div style={{
+                    position:'absolute',width:'300%',height:'100%',top:0,left:0,
+                    background:d.surf,backgroundRepeat:'repeat-x',backgroundSize:'33.333% 100%',
+                    animation:!isSpace?`rotateSurface ${parseInt(d.rot)*0.55}s linear infinite`:'none',
+                  }}/>
+                  {/* 3D shading overlay */}
+                  <div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 64% 34%, transparent 12%, rgba(0,0,0,0.28) 52%, rgba(0,0,0,0.82) 100%)'}}/>
+                </div>
+                {/* Saturn ring (outside clip) */}
+                {p.id==='saturn'&&(
+                  <div style={{
+                    position:'absolute',width:'148%',height:'40%',borderRadius:'50%',
+                    border:`5px solid ${active?'#d4b070aa':'#d4b07066'}`,
+                    top:'30%',left:'-24%',transform:'rotateX(70deg)',pointerEvents:'none',zIndex:2,
+                    transition:'border-color 0.3s',
+                  }}/>
+                )}
+                {/* Deep space starfield preview */}
+                {isSpace&&(
+                  <div style={{position:'absolute',inset:0,borderRadius:'50%',overflow:'hidden',border:`3px solid ${active?'#fff':'#8855ff55'}`,transform:active?'scale(1.14)':'scale(1)',transition:'all 0.25s',background:'radial-gradient(circle at 38% 38%,#2a1155,#0a0812)'}}>
+                    {[...Array(12)].map((_,i)=><div key={i} style={{position:'absolute',width:i%3===0?2:1,height:i%3===0?2:1,borderRadius:'50%',background:'#fff',left:`${(i*37)%90+5}%`,top:`${(i*53)%90+5}%`,opacity:0.5+Math.random()*0.5}}/>)}
+                  </div>
+                )}
+              </div>
+              {/* Planet name */}
+              <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:5,color:active?p.color:'var(--tx3)',textAlign:'center',lineHeight:1.5,textShadow:active?`0 0 8px ${p.color}88`:'none',transition:'all 0.2s',letterSpacing:'0.5px'}}>
+                {p.label}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── MULTIPLAYER SETUP ─────────────────────────────────────────────────────
+const PCOLORS=['#00ff88','#ffdd00','#ff3355','#00ffff'];
+const PEMOJIS=['🧙','🧝','🧛','🧜'];
+
+function MultiSetup({levelKey,onStart,onBack}){
+  const[names,setNames]=useState(['','','','']);
+  const[count,setCount]=useState(2);
+  const go=()=>{const ps=Array.from({length:count},(_,i)=>names[i].trim()||`PLAYER ${i+1}`);SFX.click();onStart(ps);};
+  return(
+    <div className="setup-container">
+      <div>
+        <div className="game-title" style={{fontSize:'clamp(14px,4vw,26px)'}}>⚔ VS MODE</div>
+        <div className="game-subtitle" style={{marginTop:10}}>ENTER PLAYER NAMES</div>
+      </div>
+      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+        <span style={{fontFamily:"'Press Start 2P',cursive",fontSize:8,color:'var(--tx3)'}}>PLAYERS:</span>
+        {[1,2,3,4].map(n=><button key={n} className={`algo-btn${count===n?' active':''}`} onClick={()=>{SFX.click();setCount(n);}}>{n}</button>)}
+      </div>
+      <div className="player-inputs">
+        {Array.from({length:count},(_,i)=>(
+          <div key={i} className="player-input-row">
+            <span className="player-input-label" style={{color:PCOLORS[i]}}>{PEMOJIS[i]} P{i+1}</span>
+            <input className="player-name-input" style={{borderColor:names[i]?PCOLORS[i]+'66':'var(--bd2)'}}
+              placeholder={`Player ${i+1} name`} value={names[i]} maxLength={12}
+              onChange={e=>{const ns=[...names];ns[i]=e.target.value;setNames(ns);}}
+              onKeyDown={e=>{if(e.key==='Enter')go();}}
+            />
+          </div>
+        ))}
+      </div>
+      <div style={{display:'flex',gap:12}}>
+        <button className="btn btn-green" onClick={go}>⚔ START BATTLE</button>
+        <button className="btn btn-gray" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+      </div>
+      <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx4)',textAlign:'center',lineHeight:2.2}}>
+        Same monsters — same PAR — who sorts best?
+      </div>
+    </div>
+  );
+}
+
+function MultiResults({results,onPlayAgain,onMenu}){
+  const sorted=[...results].sort((a,b)=>b.stars!==a.stars?b.stars-a.stars:a.swaps!==b.swaps?a.swaps-b.swaps:(a.time||999)-(b.time||999));
+  const medals=['🥇','🥈','🥉'];
+  const gold=['#ffdd00','#c0c0c0','#cd7f32'];
+  useEffect(()=>{SFX.star(3);},[]);
+  return(
+    <div className="results-overlay">
+      <div className="results-card" style={{maxWidth:520,width:'92%'}}>
+        <div className="results-title">🏆 BATTLE RESULTS!</div>
+        {results.length>1&&sorted[0]&&<div style={{fontFamily:"'Press Start 2P',cursive",fontSize:9,color:'#ffdd00',marginBottom:14}}>👑 {sorted[0].name} WINS!</div>}
+        <div className="multi-leaderboard">
+          {sorted.map((p,i)=>(
+            <div key={i} className="lb-row" style={{borderColor:i<3?gold[i]:'var(--bd)',background:i===0?'#ffdd0015':i===1?'#c0c0c010':i===2?'#cd7f3210':'var(--bg2)'}}>
+              <div className="lb-rank">{medals[i]||`${i+1}.`}</div>
+              <div className="lb-name" style={{color:i===0?'#ffdd00':'var(--tx)'}}>{p.name}</div>
+              <div className="lb-stars">{'⭐'.repeat(p.stars)}</div>
+              <div className="lb-meta"><div>{p.swaps} swaps</div>{p.timerOn&&p.time?<div>{fmtTime(p.time)}</div>:null}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:18}}>
+          <button className="btn btn-green" onClick={()=>{SFX.click();onPlayAgain();}}>↺ PLAY AGAIN</button>
+          <button className="btn btn-gray"  onClick={()=>{SFX.back();onMenu();}}>← MENU</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PENGUIN MASCOT ────────────────────────────────────────────────────────
+const PENGUIN_HINTS={
+  menu:[
+    "Hi! I'm PINGU! 🐧 Tap me any time for hints!\n\nStart with MONSTER SORTER — drag creatures into HP order and learn sorting step by step!",
+    "⚔ VS MODE lets up to 4 friends compete on the same device! Everyone sorts the SAME monsters — lowest swaps wins!",
+    "Complete all 4 modes to master algorithms: Sorting · Pathfinding · Binary Search · Graph Traversal. You've got this! 🏆",
+  ],
+  sort:[
+    "See the YELLOW GLOW? That's the single best swap right now!\n\nFollow hint swaps in a row → you'll build a COMBO multiplier! 💡🔥",
+    "PAR = the INVERSION COUNT — the theoretical minimum swaps to sort this array.\n\nHit ≤ 130% of PAR for 3 stars ⭐⭐⭐. Hit ≤ 200% for 2 stars!",
+    "In WATCH mode try QUICK SORT ⚡ — watch the yellow PIVOT partition the array! It's O(n log n) average and blazing fast in practice.",
+  ],
+  path:[
+    "A* uses f(n) = g + h.\ng = steps taken from start.\nh = Manhattan distance to the goal.\nThat heuristic is why A* visits WAY fewer nodes than Dijkstra! ⭐",
+    "🧱 Paint walls with the Wall tool, then hit ▶ RUN. Try completely blocking a direct path — watch A* reroute around it!",
+    "Switch between A* and DIJKSTRA on the exact same maze and compare the BLUE visited nodes. A* explores far fewer — that's the power of a heuristic! 🔵",
+  ],
+  bsearch:[
+    "Pick any number, then watch LO · MID · HI close in.\n\nThe array is SORTED so binary search cuts the search space in HALF every single step — O(log n)! 🔍",
+    "With 16 numbers, binary search needs at most 4 steps:\nlog₂(16) = 4 ✨\n\nWith 1 million numbers it only needs 20 steps. That's the magic!",
+    "Gray numbers are ELIMINATED forever — binary search never revisits them.\n\nTry picking the LAST number in the array to see the most steps! 🎯",
+  ],
+  graph:[
+    "BFS uses a QUEUE 🌊 — it visits ALL nodes one hop away before moving further. Pick node A and watch it sweep outward level by level!",
+    "DFS uses a STACK 🔽 — it dives as DEEP as possible before backtracking. Start from A with DFS and see it reach H before visiting nearby nodes!",
+    "Click a LEAF node like H, I, or J as the start, then compare BFS vs DFS. The traversal order is completely different — same graph, different algorithms! 🕸️",
+  ],
+};
+const PENGUIN_CHEERS={
+  sort:["You're on fire! 🔥","Follow the glow! 💛","COMBO time! 🎯","Swap swap swap! 🐧","So close to sorted! ⭐","Great moves! 💪"],
+  path:["Find that path! 🗺️","Paint those walls! 🧱","A* believes in you! ⭐","Keep exploring! 🐧","Almost there! ✨"],
+  bsearch:["Slice it in half! ✂️","Binary is FAST! ⚡","Log n is tiny! 🎯","Narrowing down! 🔍","Great pick! 🐧"],
+  graph:["Explore them all! 🕸️","Graph master! 🌊","Deep dive ahead! 🔽","Visit every node! ✅","You've got this! 🐧"],
+  menu:["Let's learn algorithms! 📚","Pick a mode! 🎮","Waddle into learning! 🐧","Challenge yourself! 🏆"],
+};
+
+function Penguin({gameMode}){
+  const[open,setOpen]=useState(false);
+  const[hintsUsed,setHintsUsed]=useState(0);
+  const[message,setMessage]=useState('');
+  const[excited,setExcited]=useState(false);
+  const[cheer,setCheer]=useState('');
+  const[cheerKey,setCheerKey]=useState(0);
+  const excRef=useRef(null),cheerRef=useRef(null);
+
+  const excite=()=>{setExcited(true);if(excRef.current)clearTimeout(excRef.current);excRef.current=setTimeout(()=>setExcited(false),720);};
+
+  // Random cheer on a timer while playing
+  useEffect(()=>{
+    if(gameMode==='menu')return;
+    const schedule=()=>{
+      cheerRef.current=setTimeout(()=>{
+        const list=PENGUIN_CHEERS[gameMode]||PENGUIN_CHEERS.menu;
+        setCheer(list[Math.floor(Math.random()*list.length)]);
+        setCheerKey(k=>k+1);
+        excite();
+        setTimeout(()=>setCheer(''),3300);
+        schedule();
+      },32000+Math.random()*22000);
+    };
+    schedule();
+    return()=>{clearTimeout(cheerRef.current);};
+  },[gameMode]);
+
+  const ask=()=>{
+    SFX.click();
+    const hints=PENGUIN_HINTS[gameMode]||PENGUIN_HINTS.menu;
+    if(hintsUsed>=3){
+      setMessage("I'm all out of hints — but I totally BELIEVE in you! You've got this, champion! 🐧💪");
+    }else{
+      setMessage(hints[hintsUsed]);
+      setHintsUsed(h=>h+1);
+    }
+    excite();
+    setOpen(true);
+    setCheer('');
+  };
+
+  const pipsLeft=Math.max(0,3-hintsUsed);
+
+  return(
+    <div className="penguin-wrap">
+      {open&&(
+        <div className="penguin-bubble">
+          <button className="penguin-close" onClick={e=>{e.stopPropagation();setOpen(false);SFX.click();}}>×</button>
+          <div className="penguin-bubble-text">{message}</div>
+          <div className="penguin-hints-row">
+            {[0,1,2].map(i=>(
+              <span key={i} className="penguin-pip" style={{background:i<pipsLeft?'var(--green)':'var(--bg4)'}}/>
+            ))}
+            <span style={{marginLeft:4}}>{pipsLeft>0?`${pipsLeft} hint${pipsLeft!==1?'s':''} left`:'No hints left!'}</span>
+          </div>
+        </div>
+      )}
+      {cheer&&!open&&(
+        <div className="penguin-cheer" key={cheerKey}>{cheer}</div>
+      )}
+      <div className={`penguin-emoji${excited?' excited':''}`} onClick={ask} title="Click me for hints! 🐧">
+        🐧
+      </div>
+      <div className="penguin-name">PINGU</div>
+    </div>
+  );
+}
+
+// ── GAME MENU ─────────────────────────────────────────────────────────────
+function GameMenu({onSelect}){
+  const{theme}=useTheme();
+  const modes=[
+    {id:'sort', icon:'👾',title:'MONSTER SORTER',desc:'Drag monsters to sort by HP. Watch Bubble, Quick & Merge sort live. Earn stars!',color:'#00ff88'},
+    {id:'path', icon:'🗺', title:'DUNGEON ESCAPE',desc:'A* vs Dijkstra pathfinding. Paint walls, move targets, compare algorithms.',color:'#00ffff'},
+    {id:'bsearch',icon:'🔍',title:'BINARY SEARCH',desc:'Pick a target. Watch binary search home in on it. Learn O(log n) in action.',color:'#ffdd00'},
+    {id:'graph', icon:'🕸️', title:'BFS / DFS GRAPH',desc:'Explore a graph with Breadth-First or Depth-First search. See the difference!',color:'#ff00cc'},
+  ];
+  return(
+    <div className="menu-container">
+      <div>
+        <div className="game-title">⚔ ALGOQUEST ⚔</div>
+        <div className="game-subtitle">ALGORITHM VISUALIZATION GAME</div>
+      </div>
+      <div className="mode-cards">
+        {modes.map(m=>(
+          <div key={m.id} className="mode-card" onClick={()=>{SFX.select();onSelect(m.id);}}>
+            <div className="mode-icon">{m.icon}</div>
+            <div className="mode-title" style={{color:m.color}}>{m.title}</div>
+            <div className="mode-desc">{m.desc}</div>
+            <div className="mode-play" style={{color:m.color}}>▶ PLAY</div>
+          </div>
+        ))}
+      </div>
+      <PlanetPicker/>
+      <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+        <ThemeBtn/><MusicBtn/><MuteBtn/>
+        <span style={{color:'var(--tx4)',fontSize:8,fontFamily:"'Press Start 2P',cursive"}}>LEARN CS THROUGH PLAY</span>
+      </div>
+    </div>
+  );
+}
+
+// ── LEVEL SELECT ──────────────────────────────────────────────────────────
+function LevelSelect({onSelect,onMulti,onBack}){
+  const[vsMode,setVsMode]=useState(false);
+  const handle=(key)=>{if(!isUnlocked(key)){SFX.back();return;}SFX.select();vsMode?onMulti(key):onSelect(key);};
+  return(
+    <div className="menu-container">
+      <div>
+        <div className="game-title" style={{fontSize:'clamp(14px,4vw,30px)'}}>👾 MONSTER SORTER</div>
+        <div className="game-subtitle" style={{marginTop:10}}>CHOOSE DIFFICULTY</div>
+      </div>
+      <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+        <button className={`algo-btn${!vsMode?' active':''}`} onClick={()=>{SFX.click();setVsMode(false);}}>🎮 SOLO</button>
+        <button className={`algo-btn${vsMode?' active':''}`} onClick={()=>{SFX.click();setVsMode(true);}}>⚔ VS MODE</button>
+        {vsMode&&<span style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'#ff00cc'}}>2-4 players, take turns!</span>}
+      </div>
+      <div className="level-cards">
+        {Object.entries(LEVELS).map(([key,lv])=>{
+          const locked=!isUnlocked(key); const best=getBest(key);
+          return(
+            <div key={key} className={`level-card${locked?' locked':''}`} style={{borderColor:lv.color+(locked?'22':'44')}}
+              onClick={()=>handle(key)}
+              onMouseEnter={e=>{if(!locked){e.currentTarget.style.borderColor=lv.color;e.currentTarget.style.transform='translateY(-5px)';}}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=lv.color+(locked?'22':'44');e.currentTarget.style.transform='';}}
+            >
+              {locked&&<div className="lock-badge">🔒</div>}
+              <div className="level-icon">{lv.icon}</div>
+              <div className="level-label" style={{color:locked?'var(--tx3)':lv.color}}>{lv.label}</div>
+              <div className="level-count">{lv.desc}</div>
+              {best&&<div className="level-best">{'⭐'.repeat(best.stars)}{'☆'.repeat(3-best.stars)}</div>}
+              {!best&&!locked&&<div className="level-best" style={{color:'var(--tx4)',fontSize:8}}>Not played</div>}
+              {locked&&<div className="level-best" style={{color:'var(--tx4)',fontSize:8}}>Beat prev level</div>}
+            </div>
+          );
+        })}
+      </div>
+      <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+    </div>
+  );
+}
+
+// ── SORTING GAME ──────────────────────────────────────────────────────────
+function SortingGame({levelKey,onBack,onMenu,initialMonsters,multiPlayers,multiPlayerIdx,onPlayerDone}){
+  const lv=LEVELS[levelKey],COUNT=lv.count;
+  const mkM=useCallback(()=>{if(initialMonsters)return initialMonsters.map(x=>({...x}));const v=Array.from({length:COUNT},()=>Math.floor(Math.random()*89)+10);let t=0;while(isSorted(v)&&t++<30){const i=Math.floor(Math.random()*COUNT),j=Math.floor(Math.random()*COUNT);[v[i],v[j]]=[v[j],v[i]];}return v.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp}));},[COUNT,initialMonsters]);
+
+  const[gameMode,setGameMode]=useState('play');
+  const[monsters,setMonsters]=useState(()=>mkM());
+  const[initSnap,setInitSnap]=useState(null);
+  const[algo,setAlgo]=useState('bubble');
+  const[steps,setSteps]=useState([]);
+  const[stepIdx,setStepIdx]=useState(-1);
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(280);
+  const[swaps,setSwaps]=useState(0);
+  const[cmps,setCmps]=useState(0);
+  const[msg,setMsg]=useState('');
+  const[drag,setDrag]=useState({from:-1,to:-1});
+  const[pSwaps,setPSwaps]=useState(0);
+  const[combo,setCombo]=useState(0);
+  const[optInv,setOptInv]=useState(0);
+  const[showRes,setShowRes]=useState(false);
+  const[resStars,setResStars]=useState(0);
+  const[showHint,setShowHint]=useState(true);
+  const[timerOn,setTimerOn]=useState(false);
+  const[elapsed,setElapsed]=useState(0);
+  const[timerActive,setTimerActive]=useState(false);
+  const timerRef=useRef(null),stepTimer=useRef(null),intervalRef=useRef(null),stRef=useRef({monsters,pSwaps,optInv,drag,combo,elapsed});
+
+  useEffect(()=>{stRef.current={monsters,pSwaps,optInv,drag,combo,elapsed};},[monsters,pSwaps,optInv,drag,combo,elapsed]);
+  useEffect(()=>{const s=monsters.map(m=>({...m}));setInitSnap(s);setOptInv(countInversions(s.map(m=>m.hp)));},[]);// eslint-disable-line
+
+  // Timer
+  useEffect(()=>{
+    if(timerActive){intervalRef.current=setInterval(()=>setElapsed(t=>t+1),1000);}
+    else clearInterval(intervalRef.current);
+    return()=>clearInterval(intervalRef.current);
+  },[timerActive]);
+
+  const cur=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const dispArr=cur?cur.arr.map((hp,i)=>({...MONSTERS[i%MONSTERS.length],hp})):monsters;
+  const maxHp=Math.max(...dispArr.map(m=>m.hp),1);
+
+  const prevStepRef=useRef(null);
+  useEffect(()=>{
+    if(gameMode!=='watch'||!cur)return;
+    const p=prevStepRef.current; prevStepRef.current=cur; if(!p)return;
+    if(cur.swapping&&cur.swapping.length)SFX.swap();
+    else if(cur.comparing&&cur.comparing.length)SFX.compare();
+  },[cur,gameMode]);
+
+  const cc=idx=>{
+    if(gameMode==='play'){
+      if(drag.from===idx)return'dragging';
+      if(drag.from!==-1&&drag.to===idx)return'drag-over';
+      if(isSorted(monsters.map(m=>m.hp)))return'all-done';
+      const h=showHint?getBubbleHint(monsters.map(m=>m.hp)):null;
+      if(h&&(h[0]===idx||h[1]===idx))return'hint';
+      return'';
+    }
+    if(!cur)return'';
+    const{comparing,swapping,sorted,pivot,mr}=cur;
+    if(sorted&&sorted.includes(idx))return'sorted';
+    if(swapping&&swapping.includes(idx))return'swapping';
+    if(comparing&&comparing.includes(idx))return'comparing';
+    if(pivot===idx)return'pivot';
+    if(mr&&idx>=mr[0]&&idx<=mr[1])return'merging';
+    return'';
+  };
+
+  const genS=useCallback((mon,a)=>{const arr=mon.map(m=>m.hp);if(a==='bubble')return genBubble(arr);if(a==='quick')return genQuick(arr);return genMerge(arr);},[]);
+  const stop=useCallback(()=>{setIsRunning(false);if(stepTimer.current){clearTimeout(stepTimer.current);stepTimer.current=null;}},[]);
+  const resetW=()=>{stop();setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setMsg('');prevStepRef.current=null;};
+  const chAlgo=a=>{SFX.click();stop();setAlgo(a);setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setMsg('');prevStepRef.current=null;};
+
+  const shuffle=()=>{
+    const m=mkM();SFX.click();stop();setMonsters(m);setInitSnap(m.map(x=>({...x})));setOptInv(countInversions(m.map(x=>x.hp)));
+    setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setPSwaps(0);setCombo(0);setMsg('');setShowRes(false);setElapsed(0);setTimerActive(false);prevStepRef.current=null;
+  };
+  const retry=()=>{
+    if(!initSnap)return;SFX.click();
+    setMonsters(initSnap.map(x=>({...x})));setPSwaps(0);setCombo(0);setShowRes(false);setMsg('');setElapsed(0);setTimerActive(false);
+  };
+  const runWatch=()=>{SFX.click();let s=steps;if(!s.length){s=genS(monsters,algo);setSteps(s);}setIsRunning(true);setStepIdx(p=>p<0?0:p);};
+  const stepFwd=()=>{let s=steps;if(!s.length){s=genS(monsters,algo);setSteps(s);}setStepIdx(prev=>{const next=Math.min(prev+1,s.length-1);if(s[next]){if(s[next].swapping&&s[next].swapping.length)setSwaps(c=>c+1);if(s[next].comparing&&s[next].comparing.length)setCmps(c=>c+1);}return next;});};
+  const stepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
+
+  const handleDS=idx=>{if(showRes||isSorted(monsters.map(m=>m.hp)))return;setDrag({from:idx,to:-1});};
+  const handleDE=idx=>{if(drag.from===-1||drag.from===idx)return;setDrag(d=>({...d,to:idx}));};
+
+  const commitSwap=useCallback(()=>{
+    const{monsters:m,pSwaps:ps,optInv:oi,drag:d,combo:cb,elapsed:el}=stRef.current;
+    setDrag({from:-1,to:-1});
+    if(d.from===-1||d.to===-1||d.from===d.to)return;
+    const hint=getBubbleHint(m.map(x=>x.hp));
+    const isOpt=hint&&((d.from===hint[0]&&d.to===hint[1])||(d.from===hint[1]&&d.to===hint[0]));
+    const nm=[...m];[nm[d.from],nm[d.to]]=[nm[d.to],nm[d.from]];
+    setMonsters(nm);
+    const ns=ps+1;setPSwaps(ns);
+    const nc=isOpt?cb+1:0;setCombo(nc);
+    SFX.swap();if(isOpt&&nc>1)SFX.combo(nc);
+    if(ns===1&&timerOn){setTimerActive(true);}
+    if(isSorted(nm.map(x=>x.hp))){
+      setTimerActive(false);
+      const stars=calcStars(ns,oi);
+      setResStars(stars);
+      if(!multiPlayers)saveScore(levelKey,stars,el);
+      SFX.sorted();setTimeout(()=>setShowRes(true),600);
+    }
+  },[timerOn,levelKey,multiPlayers]);
+
+  // Touch support for monsters
+  const touchPosToIdx=useCallback(e=>{
+    const t=e.touches[0]||e.changedTouches[0];
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    if(el&&el.dataset.midx!==undefined)return parseInt(el.dataset.midx);
+    return-1;
+  },[]);
+
+  useEffect(()=>{const up=()=>{if(stRef.current.drag.from!==-1)commitSwap();};window.addEventListener('mouseup',up);return()=>window.removeEventListener('mouseup',up);},[commitSwap]);
+
+  useEffect(()=>{
+    if(gameMode!=='watch'||!isRunning||!steps.length)return;
+    if(stepIdx>=steps.length-1){setIsRunning(false);setMsg('SORTED! ✓');SFX.sorted();return;}
+    stepTimer.current=setTimeout(()=>{setStepIdx(prev=>{const next=prev+1;if(steps[next]){if(steps[next].swapping&&steps[next].swapping.length)setSwaps(c=>c+1);if(steps[next].comparing&&steps[next].comparing.length)setCmps(c=>c+1);}return next;});},speed);
+    return()=>clearTimeout(stepTimer.current);
+  },[gameMode,isRunning,stepIdx,steps,speed]);
+
+  const switchMode=m=>{SFX.click();stop();setGameMode(m);setStepIdx(-1);setSteps([]);setSwaps(0);setCmps(0);setMsg('');prevStepRef.current=null;if(m==='play'&&initSnap){setMonsters(initSnap.map(x=>({...x})));setPSwaps(0);setCombo(0);setShowRes(false);setElapsed(0);setTimerActive(false);}};
+
+  const pseudo=PSEUDO[algo],compl=COMPL[algo],actLine=cur?cur.pl:-1;
+  const hint=gameMode==='play'&&showHint?getBubbleHint(monsters.map(m=>m.hp)):null;
+  const sorted=isSorted(monsters.map(m=>m.hp));
+
+  const mpPlayerName=multiPlayers?multiPlayers[multiPlayerIdx]:null;
+  const mpNextName=multiPlayers&&multiPlayerIdx<multiPlayers.length-1?multiPlayers[multiPlayerIdx+1]:null;
+  const mpColor=multiPlayers?PCOLORS[multiPlayerIdx]:'var(--green)';
+  const mpEmoji=multiPlayers?PEMOJIS[multiPlayerIdx]:'';
+  const handleNext=()=>{setShowRes(false);onPlayerDone(resStars,pSwaps,elapsed,timerOn);};
+
+  return(
+    <div className="game-container">
+      {showRes&&<ResultsOverlay stars={resStars} playerSwaps={pSwaps} optSwaps={optInv} timeS={elapsed} timerOn={timerOn}
+        onRetry={retry} onMenu={onMenu}
+        playerName={mpPlayerName} nextPlayerName={mpNextName}
+        onNext={multiPlayers?handleNext:null}
+      />}
+      <div className="game-header">
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+        <span className="section-title">👾 MONSTER SORTER</span>
+        <span style={{fontSize:7,color:lv.color,fontFamily:"'Press Start 2P',cursive"}}>{lv.label}</span>
+        {multiPlayers&&(
+          <div className="player-turn-badge" style={{borderColor:mpColor,color:mpColor}}>
+            {mpEmoji} {mpPlayerName} <span style={{color:'var(--tx3)'}}>• {multiPlayerIdx+1}/{multiPlayers.length}</span>
+          </div>
+        )}
+        <HeaderRight/>
+      </div>
+
+      <div className="mode-tabs">
+        <button className={`mode-tab${gameMode==='play'?' active':''}`} onClick={()=>switchMode('play')}>🎮 PLAY</button>
+        <button className={`mode-tab${gameMode==='watch'?' active':''}`} onClick={()=>switchMode('watch')}>👁 WATCH</button>
+      </div>
+
+      <div className="sort-layout">
+        <div>
+          {gameMode==='watch'&&(
+            <div style={{display:'flex',gap:7,marginBottom:10,flexWrap:'wrap'}}>
+              {[['bubble','🫧 BUBBLE'],['quick','⚡ QUICK'],['merge','🔀 MERGE']].map(([a,lb])=>(
+                <button key={a} className={`algo-btn${algo===a?' active':''}`} onClick={()=>chAlgo(a)}>{lb}</button>
+              ))}
+            </div>
+          )}
+
+          <div className="monster-arena">
+            {gameMode==='play'&&(
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+                <button className={`algo-btn${showHint?' active':''}`} onClick={()=>{SFX.click();setShowHint(h=>!h);}}>💡 HINT {showHint?'ON':'OFF'}</button>
+                <button className={`algo-btn${timerOn?' active':''}`} onClick={()=>{SFX.click();setTimerOn(t=>{if(!t)setElapsed(0);return!t;});}}>⏱ TIMER {timerOn?'ON':'OFF'}</button>
+                {timerOn&&<span style={{fontFamily:"'Press Start 2P',cursive",fontSize:9,color:timerActive?'#ffdd00':'var(--tx3)'}}>{fmtTime(elapsed)}</span>}
+                {hint&&!sorted&&<span style={{fontSize:8,color:'#ffdd00',fontFamily:"'Press Start 2P',cursive"}}>Swap the glow!</span>}
+                {sorted&&<span style={{fontSize:8,color:'var(--green)',fontFamily:"'Press Start 2P',cursive"}}>SORTED ✓</span>}
+              </div>
+            )}
+
+            {gameMode==='play'&&combo>1&&(
+              <div className="combo-row"><span className="combo-num" key={combo}>x{combo}</span><span className="combo-label">COMBO!</span></div>
+            )}
+
+            <div className="monster-row" onMouseLeave={()=>drag.from!==-1&&setDrag(d=>({...d,to:-1}))}>
+              {dispArr.map((m,idx)=>(
+                <div key={idx} className={`monster-card ${cc(idx)}`}
+                  style={{height:`${95+Math.round((m.hp/maxHp)*80)}px`}}
+                  data-midx={idx}
+                  onMouseDown={()=>gameMode==='play'&&handleDS(idx)}
+                  onMouseEnter={()=>gameMode==='play'&&handleDE(idx)}
+                  onTouchStart={e=>{e.preventDefault();if(gameMode==='play')handleDS(idx);}}
+                  onTouchMove={e=>{e.preventDefault();if(gameMode==='play'){const i=touchPosToIdx(e);if(i>=0)handleDE(i);}}}
+                  onTouchEnd={e=>{e.preventDefault();if(gameMode==='play')commitSwap();}}
+                >
+                  <div className="monster-emoji">{m.emoji}</div>
+                  <div className="monster-name">{m.name}</div>
+                  <div className="monster-hp">{m.hp}</div>
+                  <div className="hp-bar"><div className="hp-fill" style={{width:`${(m.hp/maxHp)*100}%`,background:m.color}}/></div>
+                </div>
+              ))}
+            </div>
+
+            {msg&&<div className={`message${msg.includes('SORTED')?' success':' info'}`}>{msg}</div>}
+
+            {gameMode==='watch'?(
+              <>
+                <div className="controls-bar">
+                  <button className="btn btn-green" onClick={runWatch}   disabled={isRunning}>▶ RUN</button>
+                  <button className="btn btn-gray"  onClick={stop}       disabled={!isRunning}>⏸</button>
+                  <button className="btn btn-gray"  onClick={stepBck}    disabled={isRunning||stepIdx<=0}>◀</button>
+                  <button className="btn btn-gray"  onClick={stepFwd}    disabled={isRunning}>▶</button>
+                  <button className="btn btn-cyan"  onClick={shuffle}>🔀</button>
+                  <button className="btn btn-red"   onClick={resetW}>↺</button>
+                  <div className="speed-control"><span>FAST</span><input type="range" min={40} max={800} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/><span>SLOW</span></div>
+                </div>
+                <div className="stats-bar">
+                  <div className="stat-item"><div className="stat-label">CMP</div><div className="stat-value" style={{color:'#3377ff'}}>{cmps}</div></div>
+                  <div className="stat-item"><div className="stat-label">SWAP</div><div className="stat-value" style={{color:'#ff3355'}}>{swaps}</div></div>
+                  <div className="stat-item"><div className="stat-label">STEP</div><div className="stat-value" style={{color:'#ffdd00',fontSize:13}}>{stepIdx<0?0:stepIdx}<span style={{fontSize:7,color:'var(--tx4)'}}>/{steps.length}</span></div></div>
+                </div>
+              </>
+            ):(
+              <div className="controls-bar">
+                <button className="btn btn-cyan"   onClick={shuffle}>🔀 NEW</button>
+                <button className="btn btn-gray"   onClick={retry}>↺ RETRY</button>
+                <div className="stats-bar" style={{marginLeft:4}}>
+                  <div className="stat-item"><div className="stat-label">SWAPS</div><div className="stat-value" style={{color:'#ff3355'}}>{pSwaps}</div></div>
+                  <div className="stat-item"><div className="stat-label">PAR</div><div className="stat-value" style={{color:'#ffdd00'}}>{optInv}</div></div>
+                  <div className="stat-item"><div className="stat-label">COMBO</div><div className="stat-value" style={{color:'#ff00cc'}}>{combo}</div></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="side-panel">
+          {gameMode==='watch'?(
+            <>
+              <div className="panel-box">
+                <div className="panel-title">📄 PSEUDOCODE</div>
+                <div className="pseudo-code">{pseudo.map((l,i)=><div key={i} className={`pseudo-line indent${l.i}${actLine===i?' active':''}`}>{l.t}</div>)}</div>
+              </div>
+              <div className="panel-box">
+                <div className="panel-title">⚡ COMPLEXITY</div>
+                <div style={{fontSize:11,color:'var(--tx2)',lineHeight:2}}>
+                  <div>Time: <span style={{color:'var(--tx)'}}>{compl.time}</span></div>
+                  <div>Space: <span style={{color:'var(--tx)'}}>{compl.space}</span></div>
+                </div>
+                <span className={`complexity-badge ${compl.b}`}>{compl.time}</span>
+              </div>
+              <div className="panel-box">
+                <div className="panel-title">🎨 LEGEND</div>
+                <div style={{fontSize:10,lineHeight:2.1}}>
+                  <div><span style={{color:'#3377ff'}}>■</span> Comparing</div>
+                  <div><span style={{color:'#ff3344'}}>■</span> Swapping</div>
+                  <div><span style={{color:'#ffdd00'}}>■</span> Pivot / Merge</div>
+                  <div><span style={{color:'var(--green)'}}>■</span> Sorted</div>
+                </div>
+              </div>
+            </>
+          ):(
+            <>
+              <div className="panel-box">
+                <div className="panel-title">🎯 HOW TO PLAY</div>
+                <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.3}}>
+                  <div>🖱 Drag to swap monsters</div>
+                  <div>💡 Yellow glow = best move</div>
+                  <div>🔥 Follow hints → COMBO!</div>
+                  <div>⏱ Timer is optional</div>
+                  <div>⭐ Beat PAR for 3 stars</div>
+                </div>
+              </div>
+              <div className="panel-box">
+                <div className="panel-title">💡 NEXT HINT</div>
+                {hint?(<div style={{fontSize:10,color:'var(--tx2)',lineHeight:2}}>
+                  <div style={{color:'var(--tx3)',marginBottom:4}}>Swap these:</div>
+                  <div style={{color:'#ffdd00'}}>{monsters[hint[0]]?.emoji} {monsters[hint[0]]?.hp} HP</div>
+                  <div style={{color:'var(--tx4)'}}>↕</div>
+                  <div style={{color:'#ffdd00'}}>{monsters[hint[1]]?.emoji} {monsters[hint[1]]?.hp} HP</div>
+                </div>):<div style={{color:'var(--green)',fontSize:10}}>Sorted! ✓</div>}
+              </div>
+              <div className="panel-box">
+                <div className="panel-title">📊 SCORE</div>
+                <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.1}}>
+                  <div>Swaps: <span style={{color:'var(--tx)'}}>{pSwaps}</span></div>
+                  <div>Par: <span style={{color:'#ffdd00'}}>{optInv}</span></div>
+                  <div>Combo: <span style={{color:'#ff00cc'}}>{combo>0?`x${combo}`:'—'}</span></div>
+                  {timerOn&&<div>Time: <span style={{color:timerActive?'#ffdd00':'var(--tx)'}}>{fmtTime(elapsed)}</span></div>}
+                  {getBest(levelKey)&&<div>Best: <span style={{color:'var(--green)'}}>{getBest(levelKey).stars}⭐{timerOn&&getBest(levelKey).time?' '+fmtTime(getBest(levelKey).time):''}</span></div>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PATHFINDING GAME ──────────────────────────────────────────────────────
+function PathfindingGame({onBack}){
+  const[grid,setGrid]=useState(genMaze);
+  const[start,setStart]=useState([1,1]);
+  const[end,setEnd]=useState([ROWS-2,COLS-2]);
+  const[algo,setAlgo]=useState('astar');
+  const[tool,setTool]=useState('wall');
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(25);
+  const[frames,setFrames]=useState([]);
+  const[frameIdx,setFrameIdx]=useState(-1);
+  const[result,setResult]=useState(null);
+  const[mouseDown,setMouseDown]=useState(false);
+  const[msg,setMsg]=useState('');
+  const timer=useRef(null);
+
+  const frame=frameIdx>=0&&frameIdx<frames.length?frames[frameIdx]:null;
+  const cc=(r,c)=>{
+    if(r===start[0]&&c===start[1])return'cell-start';if(r===end[0]&&c===end[1])return'cell-end';if(grid[r][c].wall)return'cell-wall';
+    if(frame){const k=`${r},${c}`;if(frame.path&&frame.path.some(([pr,pc])=>pr===r&&pc===c))return'cell-path';if(frame.current&&frame.current[0]===r&&frame.current[1]===c)return'cell-current';if(frame.visited&&frame.visited.has(k))return'cell-closed';if(frame.open&&frame.open.has(k))return'cell-open';}
+    return'cell-empty';
+  };
+  const resetViz=()=>{setIsRunning(false);if(timer.current){clearTimeout(timer.current);timer.current=null;}setFrames([]);setFrameIdx(-1);setResult(null);setMsg('');};
+  const interact=(r,c)=>{
+    if(isRunning)return;if(tool==='start'){setStart([r,c]);resetViz();return;}if(tool==='end'){setEnd([r,c]);resetViz();return;}
+    if(r===start[0]&&c===start[1])return;if(r===end[0]&&c===end[1])return;
+    const g=grid.map(row=>row.map(cell=>({...cell})));const was=g[r][c].wall;g[r][c].wall=(tool==='wall');if(tool==='wall'&&!was)SFX.wall();setGrid(g);resetViz();
+  };
+  const run=()=>{SFX.click();resetViz();const{frames:f,path,found}=runPath(grid,start,end,algo==='astar');setFrames(f);setResult({path,found});setFrameIdx(0);setIsRunning(true);};
+  const newMaze=()=>{SFX.click();resetViz();setGrid(genMaze());setStart([1,1]);setEnd([ROWS-2,COLS-2]);};
+
+  // Touch for grid
+  const touchCell=e=>{const t=e.touches[0]||e.changedTouches[0];const el=document.elementFromPoint(t.clientX,t.clientY);if(el&&el.dataset.rc){const[r,c]=el.dataset.rc.split(',').map(Number);interact(r,c);}};
+
+  useEffect(()=>{
+    if(!isRunning||!frames.length)return;
+    if(frameIdx>=frames.length-1){setIsRunning(false);const found=result?.found;setMsg(found?'PATH FOUND! ✓':'NO PATH EXISTS ⛔');if(found)SFX.pathFound();else SFX.noPath();return;}
+    timer.current=setTimeout(()=>setFrameIdx(p=>p+1),speed);return()=>clearTimeout(timer.current);
+  },[isRunning,frameIdx,frames,speed,result]);
+
+  const vc=frame?.visited?.size??0,qs=frame?.queue?.length??0,pl=(result?.found&&frameIdx>=frames.length-1)?result.path.length:0;
+
+  return(
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+        <span className="section-title">🗺 DUNGEON ESCAPE</span>
+        <HeaderRight/>
+      </div>
+      <div className="path-layout">
+        <div>
+          <div style={{display:'flex',gap:7,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
+            {[['astar','⭐ A*'],['dijkstra','🔵 DIJKSTRA']].map(([a,lb])=>(
+              <button key={a} className={`algo-btn${algo===a?' active':''}`} onClick={()=>{SFX.click();setAlgo(a);resetViz();}}>{lb}</button>
+            ))}
+            <button className="btn btn-green" onClick={run} disabled={isRunning}>▶ RUN</button>
+            <button className="btn btn-gray"  onClick={()=>{SFX.click();setIsRunning(false);}} disabled={!isRunning}>⏸</button>
+            <button className="btn btn-cyan"  onClick={newMaze}>🎲 NEW</button>
+            <button className="btn btn-red"   onClick={()=>{SFX.click();resetViz();}}>↺</button>
+          </div>
+          <div className="tool-select">
+            <span style={{fontSize:8,color:'var(--tx3)',alignSelf:'center',fontFamily:"'Press Start 2P',cursive"}}>TOOL:</span>
+            {[['wall','🧱'],['erase','🧹'],['start','🟢'],['end','🔴']].map(([t,lb])=>(
+              <button key={t} className={`tool-btn${tool===t?' active':''}`} onClick={()=>{SFX.click();setTool(t);}}>{lb} {t.toUpperCase()}</button>
+            ))}
+          </div>
+          {msg&&<div className={`message${msg.includes('FOUND')?' success':msg.includes('NO')?' error':' info'}`}>{msg}</div>}
+          <div className="dungeon-area">
+            <div className="dungeon-grid" style={{gridTemplateColumns:`repeat(${COLS},25px)`}} onMouseLeave={()=>setMouseDown(false)}
+              onTouchStart={e=>{e.preventDefault();setMouseDown(true);touchCell(e);}}
+              onTouchMove={e=>{e.preventDefault();if(mouseDown)touchCell(e);}}
+              onTouchEnd={()=>setMouseDown(false)}
+            >
+              {grid.map((row,r)=>row.map((_,c)=>(
+                <div key={`${r}-${c}`} className={`grid-cell ${cc(r,c)}`} data-rc={`${r},${c}`}
+                  onMouseDown={()=>{setMouseDown(true);interact(r,c);}}
+                  onMouseUp={()=>setMouseDown(false)}
+                  onMouseEnter={()=>{if(mouseDown)interact(r,c);}}
+                />
+              )))}
+            </div>
+            <div className="legend">
+              {[['#00ff88','Start'],['#ff3355','End'],['#1133cc99','Open'],['#1a1a3688','Visited'],['#ffdd00','Current'],['var(--cyan)','Path'],['var(--bd)','Wall']].map(([color,label])=>(
+                <div key={label} className="legend-item"><div className="legend-dot" style={{background:color,border:'1px solid var(--bd2)'}}/><span>{label}</span></div>
+              ))}
+            </div>
+            <div className="stats-bar" style={{marginTop:10}}>
+              <div className="stat-item"><div className="stat-label">VISITED</div><div className="stat-value" style={{color:'#3377ff'}}>{vc}</div></div>
+              <div className="stat-item"><div className="stat-label">QUEUE</div><div className="stat-value" style={{color:'#ff00cc'}}>{qs}</div></div>
+              <div className="stat-item"><div className="stat-label">PATH</div><div className="stat-value" style={{color:'var(--green)'}}>{pl||'—'}</div></div>
+              <div className="stat-item"><div className="stat-label">FRAME</div><div className="stat-value" style={{color:'#ffdd00',fontSize:12}}>{frameIdx<0?0:frameIdx}<span style={{fontSize:7,color:'var(--tx4)'}}>/{frames.length}</span></div></div>
+            </div>
+            <div className="speed-control" style={{marginTop:10}}><span>FAST</span><input type="range" min={5} max={200} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)',width:130}}/><span>SLOW</span></div>
+          </div>
+        </div>
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📋 ALGORITHM</div>
+            <div style={{fontSize:10,color:'var(--tx2)',lineHeight:2}}>
+              {algo==='astar'?(<><div style={{color:'var(--green)',marginBottom:5,fontFamily:"'Press Start 2P',cursive",fontSize:8}}>A* Search</div><div>f(n) = g(n) + h(n)</div><div style={{color:'var(--tx3)'}}>h = Manhattan distance</div><div style={{marginTop:8,color:'#ffdd00'}}>Optimal + fast</div></>):(<><div style={{color:'var(--cyan)',marginBottom:5,fontFamily:"'Press Start 2P',cursive",fontSize:8}}>Dijkstra</div><div>f(n) = g(n) + 0</div><div style={{color:'var(--tx3)'}}>h = 0 (no heuristic)</div><div style={{marginTop:8,color:'#ffdd00'}}>Uniform exploration</div></>)}
+            </div>
+          </div>
+          <div className="panel-box">
+            <div className="panel-title">🔢 PRIORITY QUEUE</div>
+            <div className="queue-panel">
+              {frame?.queue?.length?frame.queue.map((item,i)=>(
+                <div key={i} className="queue-item"><span className="q-pos">[{item.r},{item.c}]</span><span className="q-f">f={item.f}</span><span className="q-g">g={item.g}</span></div>
+              )):<div style={{color:'var(--tx4)',fontSize:10,padding:7}}>Run to see queue...</div>}
+            </div>
+          </div>
+          <div className="panel-box">
+            <div className="panel-title">💡 TIPS</div>
+            <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.2}}>
+              <div>🖱 Drag to paint walls</div><div>📱 Touch supported</div><div>🔄 Compare A* vs Dijkstra</div><div>⚡ A* visits fewer nodes</div><div>🎲 New Maze = new dungeon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── BINARY SEARCH GAME ────────────────────────────────────────────────────
+function BinarySearchGame({onBack}){
+  const SIZE=16;
+  const mkArr=()=>genBSArray(SIZE);
+  const[arr,setArr]=useState(mkArr);
+  const[target,setTarget]=useState(null);
+  const[steps,setSteps]=useState([]);
+  const[stepIdx,setStepIdx]=useState(-1);
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(600);
+  const[msg,setMsg]=useState('');
+  const[phase,setPhase]=useState('pick'); // pick | run
+  const timer=useRef(null);
+
+  const cur=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const done=cur&&(cur.phase==='found'||cur.phase==='notFound');
+
+  const pickTarget=val=>{SFX.click();setTarget(val);setPhase('run');const s=genBSSteps(arr,val);setSteps(s);setStepIdx(0);setMsg('');};
+  const reset=()=>{SFX.click();if(timer.current)clearTimeout(timer.current);const a=mkArr();setArr(a);setTarget(null);setSteps([]);setStepIdx(-1);setIsRunning(false);setMsg('');setPhase('pick');};
+  const run=()=>{SFX.click();setIsRunning(true);};
+  const stepFwd=()=>{if(stepIdx>=steps.length-1)return;setStepIdx(p=>p+1);};
+  const stepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
+  const pause=()=>{SFX.click();setIsRunning(false);if(timer.current)clearTimeout(timer.current);};
+
+  useEffect(()=>{
+    if(!isRunning||!steps.length)return;
+    if(stepIdx>=steps.length-1){setIsRunning(false);const last=steps[steps.length-1];if(last.phase==='found'){setMsg(`FOUND ${target} at index ${last.mid}! ✓`);SFX.found();}else{setMsg(`${target} NOT IN ARRAY ✗`);SFX.noPath();}return;}
+    timer.current=setTimeout(()=>setStepIdx(p=>p+1),speed);return()=>clearTimeout(timer.current);
+  },[isRunning,stepIdx,steps,speed,target]);
+
+  const cellCls=idx=>{
+    if(!cur)return phase==='pick'?'target-pick':'';
+    if(cur.phase==='found'&&idx===cur.mid)return'found';
+    if(idx<cur.lo||idx>cur.hi)return'elim';
+    if(idx===cur.mid)return'mid';
+    return'';
+  };
+
+  return(
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+        <span className="section-title">🔍 BINARY SEARCH</span>
+        <HeaderRight/>
+      </div>
+      <div className="bs-layout">
+        <div>
+          <div className="bs-arena">
+            {phase==='pick'&&<div className="message info" style={{marginBottom:12}}>👆 Click any number to search for it!</div>}
+            {phase==='run'&&target!==null&&<div style={{fontFamily:"'Press Start 2P',cursive",fontSize:9,color:'var(--cyan)',marginBottom:12}}>SEARCHING FOR: <span style={{color:'#ffdd00'}}>{target}</span></div>}
+
+            <div className="bs-array">
+              {arr.map((val,idx)=>(
+                <div key={idx} className={`bs-cell ${cellCls(idx)}`}
+                  onClick={()=>{if(phase==='pick')pickTarget(val);}}
+                  style={{position:'relative'}}
+                >
+                  <div className="bs-val">{val}</div>
+                  <div className="bs-idx">[{idx}]</div>
+                  {cur&&idx===cur.mid&&<div className="bs-ptr" style={{color:'#ffdd00'}}>MID</div>}
+                  {cur&&idx===cur.lo&&idx!==cur.mid&&<div className="bs-ptr" style={{color:'var(--green)'}}>LO</div>}
+                  {cur&&idx===cur.hi&&idx!==cur.mid&&<div className="bs-ptr" style={{color:'#ff3355'}}>HI</div>}
+                </div>
+              ))}
+            </div>
+
+            {msg&&<div className={`message${msg.includes('FOUND')&&!msg.includes('NOT')?' success':(msg.includes('NOT')?' error':' info')}`}>{msg}</div>}
+
+            <div className="controls-bar">
+              {phase==='run'&&<>
+                <button className="btn btn-green"  onClick={run}     disabled={isRunning||done}>▶ RUN</button>
+                <button className="btn btn-gray"   onClick={pause}   disabled={!isRunning}>⏸</button>
+                <button className="btn btn-gray"   onClick={stepBck} disabled={isRunning||stepIdx<=0}>◀</button>
+                <button className="btn btn-gray"   onClick={stepFwd} disabled={isRunning||done}>▶</button>
+                <div className="speed-control"><span>FAST</span><input type="range" min={100} max={1200} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/><span>SLOW</span></div>
+              </>}
+              <button className="btn btn-cyan" onClick={reset}>🔀 NEW ARRAY</button>
+            </div>
+
+            <div className="stats-bar" style={{marginTop:8}}>
+              <div className="stat-item"><div className="stat-label">STEP</div><div className="stat-value" style={{color:'#ffdd00',fontSize:13}}>{stepIdx<0?0:stepIdx}<span style={{fontSize:7,color:'var(--tx4)'}}>/{steps.length}</span></div></div>
+              {cur&&<><div className="stat-item"><div className="stat-label">LO</div><div className="stat-value" style={{color:'var(--green)'}}>{cur.lo}</div></div>
+              <div className="stat-item"><div className="stat-label">HI</div><div className="stat-value" style={{color:'#ff3355'}}>{cur.hi}</div></div>
+              <div className="stat-item"><div className="stat-label">MID</div><div className="stat-value" style={{color:'#ffdd00'}}>{cur.mid}</div></div></>}
+            </div>
+          </div>
+        </div>
+
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📄 PSEUDOCODE</div>
+            <div className="pseudo-code">
+              {[
+                {t:'lo=0, hi=n-1',i:0},
+                {t:'while lo <= hi:',i:0},
+                {t:'mid=(lo+hi)/2',i:1},
+                {t:'if arr[mid]==target:',i:1},
+                {t:'return mid ✓',i:2},
+                {t:'elif arr[mid] < target:',i:1},
+                {t:'lo = mid + 1',i:2},
+                {t:'else:',i:1},
+                {t:'hi = mid - 1',i:2},
+                {t:'return -1 (not found)',i:0},
+              ].map((l,i)=>{
+                let active=false;
+                if(cur){if(cur.phase==='check'&&i===2)active=true;if(cur.phase==='found'&&i===4)active=true;if(cur.phase==='goRight'&&i===6)active=true;if(cur.phase==='goLeft'&&i===8)active=true;if(cur.phase==='notFound'&&i===9)active=true;}
+                return<div key={i} className={`pseudo-line indent${l.i}${active?' active':''}`}>{l.t}</div>;
+              })}
+            </div>
+          </div>
+          <div className="panel-box">
+            <div className="panel-title">⚡ COMPLEXITY</div>
+            <div style={{fontSize:11,color:'var(--tx2)',lineHeight:2}}>
+              <div>Time: <span style={{color:'var(--tx)'}}>O(log n)</span></div>
+              <div>Space: <span style={{color:'var(--tx)'}}>O(1)</span></div>
+              <div style={{marginTop:8,color:'var(--tx3)',fontSize:10}}>Array size: {SIZE}</div>
+              <div style={{color:'var(--tx3)',fontSize:10}}>Max steps: {Math.ceil(Math.log2(SIZE))}</div>
+            </div>
+            <span className="complexity-badge good">O(log n)</span>
+          </div>
+          <div className="panel-box">
+            <div className="panel-title">🎨 LEGEND</div>
+            <div style={{fontSize:10,lineHeight:2.2}}>
+              <div><span style={{color:'#ffdd00'}}>■</span> Mid pointer</div>
+              <div><span style={{color:'var(--green)'}}>■</span> Found!</div>
+              <div><span style={{color:'var(--tx4)'}}>■</span> Eliminated</div>
+              <div><span style={{color:'var(--cyan)'}}>■</span> Click to search</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── GRAPH BFS/DFS GAME ────────────────────────────────────────────────────
+function GraphGame({onBack}){
+  const[algo,setAlgo]=useState('bfs');
+  const[startNode,setStartNode]=useState(0);
+  const[steps,setSteps]=useState([]);
+  const[stepIdx,setStepIdx]=useState(-1);
+  const[isRunning,setIsRunning]=useState(false);
+  const[speed,setSpeed]=useState(500);
+  const[msg,setMsg]=useState('Select start node, then RUN');
+  const timer=useRef(null);
+
+  const cur=stepIdx>=0&&stepIdx<steps.length?steps[stepIdx]:null;
+  const done=cur&&stepIdx===steps.length-1;
+
+  const run=()=>{SFX.click();const s=algo==='bfs'?genBFS(startNode):genDFS(startNode);setSteps(s);setStepIdx(0);setIsRunning(true);setMsg('');};
+  const reset=()=>{SFX.click();if(timer.current)clearTimeout(timer.current);setSteps([]);setStepIdx(-1);setIsRunning(false);setMsg('Select start node, then RUN');};
+  const pause=()=>{SFX.click();setIsRunning(false);if(timer.current)clearTimeout(timer.current);};
+  const stepFwd=()=>{if(stepIdx>=steps.length-1)return;setStepIdx(p=>p+1);};
+  const stepBck=()=>{SFX.click();setStepIdx(p=>Math.max(p-1,0));};
+
+  useEffect(()=>{
+    if(!isRunning||!steps.length)return;
+    if(stepIdx>=steps.length-1){setIsRunning(false);setMsg(`${algo.toUpperCase()} complete! All ${steps.length} nodes visited.`);SFX.sorted();return;}
+    timer.current=setTimeout(()=>setStepIdx(p=>p+1),speed);return()=>clearTimeout(timer.current);
+  },[isRunning,stepIdx,steps,speed,algo]);
+
+  const visitedEdges=new Set();
+  if(cur){GEDGES.forEach(([a,b])=>{if(cur.visited.has(a)&&cur.visited.has(b))visitedEdges.add(edgeKey(a,b));});}
+
+  const nodeColor=id=>{
+    if(!cur){return id===startNode?'#ffdd00':'var(--bg3)';}
+    if(id===cur.current)return algo==='bfs'?'var(--cyan)':'#ff00cc';
+    if(cur.visited.has(id))return'var(--green)';
+    return'var(--bg3)';
+  };
+  const nodeStroke=id=>{
+    if(!cur)return id===startNode?'#ffdd00':'var(--bd)';
+    if(id===cur.current)return algo==='bfs'?'var(--cyan)':'#ff00cc';
+    if(cur.visited.has(id))return'var(--green)';
+    return'var(--bd)';
+  };
+
+  const traversalOrder=steps.slice(0,stepIdx+1).map(s=>s.current);
+
+  return(
+    <div className="game-container">
+      <div className="game-header">
+        <button className="back-btn" onClick={()=>{SFX.back();onBack();}}>← BACK</button>
+        <span className="section-title">🕸️ BFS / DFS GRAPH</span>
+        <HeaderRight/>
+      </div>
+      <div className="graph-layout">
+        <div>
+          <div style={{display:'flex',gap:7,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
+            {[['bfs','🌊 BFS'],['dfs','🔽 DFS']].map(([a,lb])=>(
+              <button key={a} className={`algo-btn${algo===a?' active':''}`} onClick={()=>{SFX.click();setAlgo(a);reset();}}>{lb}</button>
+            ))}
+            <button className="btn btn-green"  onClick={run}     disabled={isRunning}>▶ RUN</button>
+            <button className="btn btn-gray"   onClick={pause}   disabled={!isRunning}>⏸</button>
+            <button className="btn btn-gray"   onClick={stepBck} disabled={isRunning||stepIdx<=0}>◀</button>
+            <button className="btn btn-gray"   onClick={stepFwd} disabled={isRunning||done}>▶</button>
+            <button className="btn btn-red"    onClick={reset}>↺ RESET</button>
+            <div className="speed-control"><span>FAST</span><input type="range" min={100} max={1500} value={speed} onChange={e=>setSpeed(+e.target.value)} style={{transform:'scaleX(-1)'}}/><span>SLOW</span></div>
+          </div>
+
+          <div className="graph-arena">
+            <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:8,color:'var(--tx3)',marginBottom:8}}>
+              {!steps.length?'👆 Click a node to set start, then RUN':msg||`STEP ${stepIdx+1} / ${steps.length}`}
+            </div>
+
+            <svg className="graph-svg" viewBox="0 0 560 330">
+              {GEDGES.map(([a,b])=>(
+                <line key={`${a}-${b}`} className={`graph-edge${visitedEdges.has(edgeKey(a,b))?' visited':''}`}
+                  x1={GNODES[a].x} y1={GNODES[a].y} x2={GNODES[b].x} y2={GNODES[b].y}
+                  stroke={visitedEdges.has(edgeKey(a,b))?'var(--green)':'var(--bd2)'} strokeWidth="2"
+                />
+              ))}
+              {GNODES.map(n=>(
+                <g key={n.id} className="graph-node" onClick={()=>{if(!isRunning){SFX.click();setStartNode(n.id);reset();}}}
+                  style={{filter:n.id===(cur?.current)&&algo==='bfs'?'drop-shadow(0 0 8px var(--cyan))':n.id===(cur?.current)&&algo==='dfs'?'drop-shadow(0 0 8px #ff00cc)':cur?.visited?.has(n.id)?'drop-shadow(0 0 5px var(--green))':'none'}}
+                >
+                  <circle cx={n.x} cy={n.y} r="22" fill={nodeColor(n.id)} stroke={nodeStroke(n.id)} strokeWidth="2.5"/>
+                  <text x={n.x} y={n.y+4} textAnchor="middle" fontSize="12" fontFamily="'Press Start 2P',cursive" fill={cur?.visited?.has(n.id)||n.id===cur?.current?'#000':'var(--tx)'}>{n.label}</text>
+                </g>
+              ))}
+            </svg>
+
+            <div style={{fontFamily:"'Press Start 2P',cursive",fontSize:7,color:'var(--tx3)',marginTop:8,marginBottom:6}}>
+              TRAVERSAL ORDER:
+            </div>
+            <div className="traversal-order">
+              {traversalOrder.map((id,i)=>(
+                <div key={i} className={`order-badge${i===traversalOrder.length-1?' current':''}`}>
+                  {GNODES[id].label}
+                </div>
+              ))}
+              {traversalOrder.length===0&&<span style={{color:'var(--tx4)',fontSize:10}}>—</span>}
+            </div>
+          </div>
+        </div>
+
+        <div className="side-panel">
+          <div className="panel-box">
+            <div className="panel-title">📋 {algo==='bfs'?'BFS':'DFS'} ALGORITHM</div>
+            <div style={{fontSize:10,color:'var(--tx2)',lineHeight:2}}>
+              {algo==='bfs'?(<>
+                <div style={{color:'var(--cyan)',fontFamily:"'Press Start 2P',cursive",fontSize:8,marginBottom:6}}>Breadth-First</div>
+                <div>Uses a <span style={{color:'var(--cyan)'}}>QUEUE</span></div>
+                <div style={{color:'var(--tx3)'}}>Visit level by level</div>
+                <div style={{marginTop:8,color:'#ffdd00'}}>Finds shortest path</div>
+                <div style={{color:'var(--tx3)'}}>O(V + E) time</div>
+              </>):(<>
+                <div style={{color:'#ff00cc',fontFamily:"'Press Start 2P',cursive",fontSize:8,marginBottom:6}}>Depth-First</div>
+                <div>Uses a <span style={{color:'#ff00cc'}}>STACK</span></div>
+                <div style={{color:'var(--tx3)'}}>Explore deep first</div>
+                <div style={{marginTop:8,color:'#ffdd00'}}>Good for maze solving</div>
+                <div style={{color:'var(--tx3)'}}>O(V + E) time</div>
+              </>)}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">{algo==='bfs'?'🔢 QUEUE':'📚 STACK'}</div>
+            <div className="stack-panel">
+              {cur?([...(algo==='bfs'?(cur.queue||[]):(cur.stack||[]))].reverse().map((id,i)=>(
+                <div key={i} className="stack-item">{GNODES[id]?.label} (node {id})</div>
+              ))):(<div style={{color:'var(--tx4)',fontSize:10,padding:7}}>Run to see {algo==='bfs'?'queue':'stack'}...</div>)}
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">🎨 LEGEND</div>
+            <div style={{fontSize:10,lineHeight:2.3}}>
+              <div><span style={{color:'#ffdd00'}}>●</span> Start node</div>
+              <div><span style={{color:algo==='bfs'?'var(--cyan)':'#ff00cc'}}>●</span> Current node</div>
+              <div><span style={{color:'var(--green)'}}>●</span> Visited</div>
+              <div><span style={{color:'var(--tx3)'}}>●</span> Unvisited</div>
+              <div style={{color:'var(--tx4)',marginTop:4}}>Click node to set start</div>
+            </div>
+          </div>
+
+          <div className="panel-box">
+            <div className="panel-title">📊 STATS</div>
+            <div style={{fontSize:10,color:'var(--tx3)',lineHeight:2.1}}>
+              <div>Visited: <span style={{color:'var(--green)'}}>{cur?.visited?.size||0}</span> / {GNODES.length}</div>
+              <div>Step: <span style={{color:'#ffdd00'}}>{stepIdx<0?0:stepIdx+1}</span> / {steps.length||'—'}</div>
+              <div>Start: <span style={{color:'var(--tx)'}}>{GNODES[startNode].label}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────
+function App(){
+  const[theme,setTheme]=useState(()=>localStorage.getItem('aq_theme')||'dark');
+  const[screen,setScreen]=useState('menu');
+  const[levelKey,setLevelKey]=useState('medium');
+  const[multiPlayers,setMultiPlayers]=useState(null);
+  const[multiPlayerIdx,setMultiPlayerIdx]=useState(0);
+  const[multiResults,setMultiResults]=useState([]);
+  const[multiSnap,setMultiSnap]=useState(null);
+
+  useEffect(()=>{document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('aq_theme',theme);},[theme]);
+  const toggleTheme=()=>setTheme(t=>t==='dark'?'light':'dark');
+
+  const startMulti=(players)=>{const snap=generateMonsters(levelKey);setMultiSnap(snap);setMultiPlayers(players);setMultiPlayerIdx(0);setMultiResults([]);setScreen('sort');};
+  const handlePlayerDone=(stars,swaps,time,timerOn)=>{
+    const newRes=[...multiResults,{name:multiPlayers[multiPlayerIdx],stars,swaps,time,timerOn}];
+    setMultiResults(newRes);
+    if(multiPlayerIdx<multiPlayers.length-1){setMultiPlayerIdx(i=>i+1);}
+    else{setScreen('multi-results');}
+  };
+  const quitMulti=()=>{setMultiPlayers(null);setMultiSnap(null);setMultiResults([]);setMultiPlayerIdx(0);setScreen('menu');};
+
+  const penguinMode={sort:'sort',level:'sort',setup:'sort','multi-results':'sort',path:'path',bsearch:'bsearch',graph:'graph'}[screen]||'menu';
+
+  const CurrentScreen=()=>{
+    if(screen==='setup')         return <MultiSetup levelKey={levelKey} onStart={startMulti} onBack={()=>setScreen('level')}/>;
+    if(screen==='multi-results') return <MultiResults results={multiResults} onPlayAgain={()=>{setMultiPlayerIdx(0);setMultiResults([]);setMultiSnap(generateMonsters(levelKey));setScreen('sort');}} onMenu={quitMulti}/>;
+    if(screen==='sort'){
+      if(multiPlayers) return <SortingGame key={`mp-${multiPlayerIdx}`} levelKey={levelKey} onBack={()=>setScreen('setup')} onMenu={quitMulti} initialMonsters={multiSnap} multiPlayers={multiPlayers} multiPlayerIdx={multiPlayerIdx} onPlayerDone={handlePlayerDone}/>;
+      return <SortingGame levelKey={levelKey} onBack={()=>setScreen('level')} onMenu={()=>setScreen('menu')}/>;
+    }
+    if(screen==='level')   return <LevelSelect onSelect={k=>{setLevelKey(k);setScreen('sort');}} onMulti={k=>{setLevelKey(k);setScreen('setup');}} onBack={()=>setScreen('menu')}/>;
+    if(screen==='path')    return <PathfindingGame onBack={()=>setScreen('menu')}/>;
+    if(screen==='bsearch') return <BinarySearchGame onBack={()=>setScreen('menu')}/>;
+    if(screen==='graph')   return <GraphGame onBack={()=>setScreen('menu')}/>;
+    return <GameMenu onSelect={mode=>setScreen(mode==='sort'?'level':mode)}/>;
+  };
+  return <><CurrentScreen/><Penguin key={penguinMode} gameMode={penguinMode}/></>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ThemeCtx.Provider value={{theme:document.documentElement.getAttribute('data-theme')||'dark',toggle:()=>{const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);localStorage.setItem('aq_theme',t);}}}>
+    <App/>
+  </ThemeCtx.Provider>
+);
+</script>
+</body>
+</html>
