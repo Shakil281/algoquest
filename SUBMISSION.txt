@@ -1,0 +1,205 @@
+AlgoQuest - Algorithm Visualization Game
+=========================================
+
+Live Demo:   https://shakil281.github.io/algoquest/
+Source Code: https://github.com/Shakil281/algoquest
+Stack:       Single HTML file · React 18 · Web Audio API · Open Trivia DB API
+
+
+HOW TO RUN (30 seconds)
+------------------------
+
+No install. No build step. No dependencies to download.
+
+Option 1 - Live site (instant):
+  Open https://shakil281.github.io/algoquest/ in any modern browser.
+
+Option 2 - Run locally:
+  git clone https://github.com/Shakil281/algoquest.git
+  cd algoquest
+  Double-click index.html  (Windows / macOS / Linux)
+
+That's it. One file. Works offline after first load (except the live trivia widget).
+
+
+WHAT IS ALGOQUEST?
+------------------
+
+AlgoQuest is an interactive computer science learning game that teaches algorithms
+through play — no coding knowledge required.
+
+It turns abstract CS concepts (sorting, pathfinding, binary search, graph traversal)
+into hands-on, visually engaging games with sound effects, 8-bit music, a mascot,
+and a multiplayer mode.
+
+The problem it solves:
+CS education tools are either too dry (lecture slides, textbooks) or too abstract
+(code editors). Students struggle to build an intuition for WHY algorithms work.
+AlgoQuest bridges this gap by making algorithms something you feel and play,
+not just read about.
+
+
+THE FOUR GAMES
+--------------
+
+1. MONSTER SORTER — Sorting Algorithms
+   - Drag and drop monsters (each with an HP value) from weakest to strongest
+   - Three difficulty levels: Easy (6 monsters), Medium (8), Hard (10)
+   - Play mode: drag-and-drop with a hint system (yellow glow shows optimal next swap)
+   - Watch mode: watch the computer sort — choose Bubble Sort, Quick Sort, or Merge Sort
+   - Live pseudocode panel highlights the exact line being executed at each step
+   - Efficiency scoring: your move count vs. the theoretical minimum (inversions)
+   - Combo system: consecutive optimal swaps multiply your score
+   - Local multiplayer: up to 4 players take turns on the same device; ranked leaderboard
+
+2. DUNGEON ESCAPE — Pathfinding (Dijkstra / A*)
+   - 18x24 grid maze with draggable start (green) and finish (red) markers
+   - Draw walls by clicking and dragging to reshape the maze
+   - Run Dijkstra or A* and watch the search frontier expand cell by cell
+   - Side-by-side comparison shows why A* visits far fewer cells (it uses a heuristic)
+   - Queue/open-set panel updates in real time showing the algorithm's internal state
+   - Step forward/backward controls + adjustable speed slider
+
+3. NUMBER HUNT — Binary Search
+   - 16 sorted numbers displayed as cards
+   - Click any number to set it as the search target
+   - Watch binary search halve the search range each step — eliminated numbers fade out
+   - Left/Mid/Right pointer labels animate across the array
+   - Panel explains: 16 numbers = at most 4 steps. 1,000,000 numbers = at most 20 steps.
+
+4. MAP EXPLORER — BFS / DFS
+   - 10-node graph representing a map of connected places (A through J)
+   - Click any node to set the start, then run BFS or DFS
+   - BFS spreads outward level-by-level (ripple); DFS dives deep before backtracking
+   - Traversal order badge row builds up in real time
+   - Queue (BFS) / Stack (DFS) panel shows the algorithm's internal data structure live
+
+
+API INTEGRATION — Open Trivia Database
+---------------------------------------
+
+Endpoint: https://opentdb.com/api.php?amount=1&category=18&type=multiple
+(Category 18 = Science: Computers. Free, no API key required.)
+
+A CS Trivia widget sits on the main menu and:
+  - Fetches a fresh Computer Science multiple-choice question on every visit
+  - Shuffles the 4 answer options randomly
+  - Shows difficulty (easy / medium / hard) and the exact sub-category
+  - Highlights correct answers in green, wrong answers in red after selection
+  - Tracks a streak counter persisted in localStorage
+  - Reacts with the PINGU mascot (great animation on correct, sad on wrong)
+  - Has a spinner loading state and a retry button on network failure
+  - "NEXT" button fetches the next question immediately without a page reload
+
+
+FEATURES AT A GLANCE
+---------------------
+
+  Zero setup              Single index.html file, no npm, no build tools
+  4 algorithm games       Sorting, Pathfinding, Binary Search, Graph Traversal
+  Watch + Play modes      Watch the computer, then try it yourself
+  Live pseudocode         Highlighted line-by-line as the algorithm runs
+  Step controls           Forward / backward / pause / speed slider on every visualizer
+  8-bit music engine      Original looping chiptune score via Web Audio API
+  Sound effects           Every interaction has a sound (swaps, combos, found, sorted)
+  Local multiplayer       2-4 players take turns, ranked by efficiency
+  PINGU mascot            Context-aware hints, mood reactions, random cheer messages
+  Dark / light theme      Full theme toggle, persisted to localStorage
+  7 planet backgrounds    Animated rotating planet sphere in the background
+  Progress persistence    Best stars and times saved to localStorage per level
+  Glitch title animation  Retro RGB color-split flicker on the main title
+  Mobile responsive       Works on phones and tablets
+  Live CS Trivia          Real API call to Open Trivia DB on every page load
+
+
+TECHNICAL ARCHITECTURE
+-----------------------
+
+Everything lives in a single index.html file (~1,950 lines).
+
+  UI framework      React 18 (loaded from CDN via UMD build)
+  JSX compilation   Babel Standalone (in-browser transform)
+  Fonts             Google Fonts — Press Start 2P (pixel font)
+  Audio             Web Audio API — custom oscillator-based sound engine
+  Music             Lookahead scheduler pattern — 8-bar chiptune loop
+  Persistence       localStorage (scores, theme, planet, mute, trivia streak)
+  External API      Open Trivia Database (opentdb.com)
+  Deployment        GitHub Pages (static, zero-config)
+
+No backend. No database. No authentication. No node_modules.
+
+Algorithm implementations (all written from scratch):
+  - Bubble Sort    generates full step trace with comparing/swapping/sorted state
+  - Quick Sort     Lomuto partition scheme with pivot highlighting
+  - Merge Sort     divide-and-conquer with merge-region highlighting
+  - Dijkstra / A*  on an 18x24 grid with wall obstacles, produces animation frames
+  - Binary Search  step-by-step with lo/mid/hi pointer state per frame
+  - BFS            queue-based level-order traversal on a 10-node graph
+  - DFS            stack-based depth-first traversal on the same graph
+
+
+SCORING SYSTEM
+--------------
+
+Monster Sorter uses inversion count to compute the theoretical minimum swaps:
+  - Count inversions in the initial array = optimal swap count
+  - Ratio of player swaps to optimal swaps determines star rating:
+      <= 1.3x optimal  =>  3 stars
+      <= 2.0x optimal  =>  2 stars
+      Otherwise        =>  1 star
+  - Best scores persist per level
+  - Medium unlocks after 1 star on Easy; Hard unlocks after 1 star on Medium
+
+
+WHO IS THIS FOR?
+----------------
+
+  - High school and university students starting their CS journey
+  - Bootcamp students preparing for technical interviews
+  - Teachers who want a live, visual aid to explain algorithms in class
+  - Curious non-programmers who want to understand how computers "think"
+  - Kids — the game layer (monsters, dungeons, planets) makes it approachable for ages 10+
+
+
+TRACTION / WHAT'S BEEN BUILT
+------------------------------
+
+This is a complete, polished, working product — not a prototype:
+  - 4 fully playable games, each with multiple modes and difficulty levels
+  - Complete visual polish: animations, sound, mascot, themes, planets
+  - Works on any device, any modern browser, with zero setup
+  - External API integrated and live
+
+
+ROADMAP
+-------
+
+  [ ] Stack / Queue visualizer (push/pop animations)
+  [ ] Linked List builder (insert, delete, traverse)
+  [ ] Time complexity race mode (compare two algorithms on the same data live)
+  [ ] Teacher dashboard — share a room code, students play on their phones
+  [ ] Leaderboard backend (Supabase / Firebase)
+  [ ] Progressive Web App (offline install, home screen icon)
+  [ ] More trivia categories + spaced repetition review mode
+  [ ] Localization (currently English only)
+
+
+FILE STRUCTURE
+--------------
+
+  algoquest/
+  └── index.html    the entire application (HTML + CSS + JS)
+
+
+BROWSER COMPATIBILITY
+----------------------
+
+  Chrome 90+          Full support
+  Firefox 88+         Full support
+  Safari 14+          Full support
+  Edge 90+            Full support
+  Mobile Chrome/Safari  Full support
+
+
+--
+Built by Shakil — March 2026
